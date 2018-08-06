@@ -23,8 +23,6 @@ func main() {
 	var connection = connect()
 	listener(connection)
 
-	//send(connection)
-
 	defer connection.Close()
 
 	for {
@@ -32,7 +30,7 @@ func main() {
 }
 
 func connect() *websocket.Conn {
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/ws/join"}
+	u := url.URL{Scheme: "ws", Host: *addr, Path: "/ws"}
 	log.Printf("connecting to %s", u.String())
 	c, _, err := dialer.Dial(u.String(), nil)
 	if err != nil {
