@@ -1,8 +1,6 @@
 package dc
 
 import (
-	"fmt"
-
 	"../commons"
 	"../field"
 	"../solver"
@@ -31,14 +29,9 @@ func (d *dcNet) SolveDCExponential(peers []*commons.PeersInfo) []uint64 {
 		for i = 0; i < totalMsgsCount; i++ {
 			var op1 = field.NewField(field.UInt64(dcCombined[i]))
 			var op2 = field.NewField(field.UInt64(peers[j].DCVector[i]))
-
 			dcCombined[i] = uint64(op1.Add(op2).Fp)
 		}
 	}
-	fmt.Printf("\nMY DC_COMBINED[] = %v\n\n", dcCombined)
 
-	allMsgHashes := solver.Solve(dcCombined, int(totalMsgsCount))
-	fmt.Printf("\nROOTS[] = %v\n", allMsgHashes)
-
-	return allMsgHashes
+	return solver.Solve(dcCombined, int(totalMsgsCount))
 }

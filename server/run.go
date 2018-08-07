@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"../commons"
@@ -38,12 +37,6 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case message := <-h.request:
-			request := &commons.GenericRequest{}
-			if err := proto.Unmarshal(message, request); err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
-				os.Exit(1)
-			}
-
 			handleRequest(message, h)
 		}
 	}

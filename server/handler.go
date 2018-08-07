@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"../commons"
 	"github.com/golang/protobuf/proto"
@@ -10,6 +11,9 @@ import (
 
 func handleRequest(message []byte, h *Hub) {
 	r := &commons.GenericRequest{}
+	h.Lock()
+	defer h.Unlock()
+
 	if err := proto.Unmarshal(message, r); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -69,19 +73,7 @@ func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
 				Message:   "Key Exchange Response",
 				Err:       "",
 			})
-
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			for client := range h.clients {
-				select {
-				case client.send <- peers:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
+			broadcast(h, peers, err)
 		}
 	}
 }
@@ -103,7 +95,6 @@ func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
 		}
 
 		if counter == maxPeers {
-
 			peers, err := proto.Marshal(&commons.DCExpResponse{
 				Code:      commons.S_EXP_DC_VECTOR,
 				Roots:     iDcNet.SolveDCExponential(h.peers),
@@ -112,19 +103,7 @@ func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
 				Err:       "",
 			})
 
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			for client := range h.clients {
-				select {
-				case client.send <- peers:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
-
+			broadcast(h, peers, err)
 		}
 	}
 }
@@ -155,19 +134,23 @@ func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
 				Err:       "",
 			})
 
-			if err != nil {
-				fmt.Println(err)
-			}
+			broadcast(h, peers, err)
+		}
+	}
+}
 
-			for client := range h.clients {
-				select {
-				case client.send <- peers:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
+func broadcast(h *Hub, message []byte, err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
 
+	for client := range h.clients {
+		time.Sleep(100 * time.Millisecond)
+		select {
+		case client.send <- message:
+		default:
+			close(client.send)
+			delete(h.clients, client)
 		}
 	}
 }

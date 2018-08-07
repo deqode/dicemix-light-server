@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"log"
 	"net/http"
 	"time"
@@ -58,8 +57,6 @@ func (c *Client) readMessage() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-
-		log.Printf("client.go (readMessage) - READ MESSAGE")
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -67,9 +64,6 @@ func (c *Client) readMessage() {
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		log.Printf("client.go (readMessage) - BROADCAST MESSAGE")
 		c.hub.request <- message
 	}
 }
@@ -91,12 +85,11 @@ func (c *Client) writeMessage() {
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
-				log.Printf("client.go (writeMessage) - WRITE CLOSE MESSAGE")
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
+			w, err := c.conn.NextWriter(websocket.BinaryMessage)
 			if err != nil {
 				return
 			}
