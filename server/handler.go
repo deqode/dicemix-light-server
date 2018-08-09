@@ -120,6 +120,7 @@ func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
 		for i := 0; i < len(h.peers); i++ {
 			if h.peers[i].Id == request.Id {
 				h.peers[i].DCSimpleVector = request.DCSimpleVector
+				h.peers[i].OK = request.MyOk
 				counter++
 			}
 		}
