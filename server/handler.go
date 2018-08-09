@@ -44,6 +44,14 @@ func handleRequest(message []byte, h *Hub) {
 		}
 
 		handleDCSimpleRequest(request, h)
+	case commons.C_TX_CONFIRMATION:
+		request := &commons.ConfirmationRequest{}
+		if err := proto.Unmarshal(message, request); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+
+		handleConfirmationRequest(request, h)
 
 	}
 }
@@ -132,6 +140,38 @@ func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
 				Peers:     h.peers,
 				Timestamp: timestamp(),
 				Message:   "DC Simple Response",
+				Err:       "",
+			})
+
+			broadcast(h, peers, err)
+		}
+	}
+}
+
+func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub) {
+	var counter int
+	for _, peer := range h.peers {
+		if len(peer.Messages) != 0 {
+			counter++
+		}
+	}
+
+	if counter < maxPeers {
+		for i := 0; i < len(h.peers); i++ {
+			if h.peers[i].Id == request.Id {
+				h.peers[i].Messages = request.Messages
+				h.peers[i].Confirm = request.Confirm
+				counter++
+			}
+		}
+
+		if counter == maxPeers {
+
+			peers, err := proto.Marshal(&commons.DiceMixResponse{
+				Code:      commons.S_TX_CONFIRMATION,
+				Peers:     h.peers,
+				Timestamp: timestamp(),
+				Message:   "Confirmation Response",
 				Err:       "",
 			})
 
