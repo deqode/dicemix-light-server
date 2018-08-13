@@ -20,6 +20,10 @@ func newHub() *Hub {
 	}
 }
 
+// starts a run
+// registers a peer when he want to participate in TX
+// unregisters a peer
+// listens for requests from peers and calls its corresponding handler
 func (h *Hub) run() {
 	for {
 		select {
@@ -42,6 +46,8 @@ func (h *Hub) run() {
 	}
 }
 
+// adds a peer in h.peers if |h.peers| < MaxPeers
+// send a failure message response to other peers
 func (h *Hub) registration(client *Client) bool {
 	h.Lock()
 	defer h.Unlock()
@@ -94,6 +100,8 @@ func (h *Hub) registration(client *Client) bool {
 	return false
 }
 
+// initiates DiceMix-Light protocol
+// send all peers ID's
 func (h *Hub) startDicemix() {
 	broadcastDiceMixResponse(h, commons.S_START_DICEMIX, "Initiate DiceMix Protocol", "")
 }

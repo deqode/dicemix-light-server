@@ -7,6 +7,9 @@ import (
 	"github.com/jinzhu/copier"
 )
 
+// handles non responsive peers
+// after responseWait seconds if all peers have not submitted their response
+// then remove them and consider those peers as offline
 func registerDelayHandler(h *Hub, code uint32, message string) {
 	if h.roundUUID[code] != h.lastRoundUUID {
 		fmt.Printf("\nRound has been done already %v, %v\n", message, code)
@@ -22,6 +25,7 @@ func registerDelayHandler(h *Hub, code uint32, message string) {
 	}
 }
 
+// removes offline peers from h.peers
 func filterPeers(h *Hub) {
 	var allPeers []*commons.PeersInfo
 	copier.Copy(&allPeers, &h.peers)
