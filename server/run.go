@@ -65,6 +65,7 @@ func (h *Hub) registration(client *Client) bool {
 
 		client.send <- registration
 		h.peers[counter-1] = &commons.PeersInfo{Id: counter}
+		h.peers[counter-1].MessageReceived = true
 
 		if counter == maxPeers {
 			// start DiceMix Light process
@@ -94,14 +95,5 @@ func (h *Hub) registration(client *Client) bool {
 }
 
 func (h *Hub) startDicemix() {
-	peers, err := proto.Marshal(&commons.DiceMixResponse{
-		Code:        commons.S_START_DICEMIX,
-		Peers:       h.peers,
-		MessageUUID: h.roundUUID[commons.S_START_DICEMIX],
-		Timestamp:   timestamp(),
-		Message:     "Initiate DiceMix Protocol",
-		Err:         "",
-	})
-
-	broadcast(h, peers, err, commons.S_START_DICEMIX, "Initiate DiceMix Protocol")
+	broadcastDiceMixResponse(h, commons.S_START_DICEMIX, "Initiate DiceMix Protocol", "")
 }

@@ -57,6 +57,8 @@ func handleRequest(message []byte, h *Hub) {
 
 func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
 	if h.lastRoundUUID == request.LastMessageUUID {
+
+		fmt.Printf("\nH LastRoundUUID = %v\nRequest LastMessageUUID = %v\n\n", h.lastRoundUUID, request.LastMessageUUID)
 		var counter int
 		for _, peer := range h.peers {
 			if len(peer.PublicKey) != 0 {
@@ -69,6 +71,7 @@ func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
 				if h.peers[i].Id == request.Id {
 					h.peers[i].PublicKey = request.PublicKey
 					h.peers[i].NumMsgs = request.NumMsgs
+					h.peers[i].MessageReceived = true
 					counter++
 				}
 			}
@@ -82,6 +85,8 @@ func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
 
 func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
 	if h.lastRoundUUID == request.LastMessageUUID {
+		fmt.Printf("\nH LastRoundUUID = %v\nRequest LastMessageUUID = %v\n\n", h.lastRoundUUID, request.LastMessageUUID)
+
 		var counter int
 		for _, peer := range h.peers {
 			if len(peer.DCVector) != 0 {
@@ -93,6 +98,7 @@ func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
 			for i := 0; i < len(h.peers); i++ {
 				if h.peers[i].Id == request.Id {
 					h.peers[i].DCVector = request.DCExpVector
+					h.peers[i].MessageReceived = true
 					counter++
 				}
 			}
@@ -118,6 +124,7 @@ func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
 				if h.peers[i].Id == request.Id {
 					h.peers[i].DCSimpleVector = request.DCSimpleVector
 					h.peers[i].OK = request.MyOk
+					h.peers[i].MessageReceived = true
 					counter++
 				}
 			}
@@ -143,6 +150,7 @@ func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub) {
 				if h.peers[i].Id == request.Id {
 					h.peers[i].Messages = request.Messages
 					h.peers[i].Confirm = request.Confirm
+					h.peers[i].MessageReceived = true
 					counter++
 				}
 			}

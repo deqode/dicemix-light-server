@@ -7,10 +7,6 @@ import (
 	"../commons"
 )
 
-func timestamp() string {
-	return time.Now().String()
-}
-
 func initRoundUUID(h *Hub) {
 	h.roundUUID[commons.S_JOIN_RESPONSE] = randUUIDString()
 	h.roundUUID[commons.S_START_DICEMIX] = randUUIDString()
@@ -27,4 +23,8 @@ func randUUIDString() string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func timestamp() string {
+	return time.Now().String()
 }

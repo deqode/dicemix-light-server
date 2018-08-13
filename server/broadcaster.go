@@ -9,6 +9,8 @@ import (
 )
 
 func broadcastDiceMixResponse(h *Hub, code uint32, message string, errMessage string) {
+	filterPeers(h)
+
 	// TODO : if not BR yet then only
 	peers, err := proto.Marshal(&commons.DiceMixResponse{
 		Code:        code,
@@ -22,6 +24,8 @@ func broadcastDiceMixResponse(h *Hub, code uint32, message string, errMessage st
 }
 
 func broadcastDCExponentialResponse(h *Hub, code uint32, message string, errMessage string) {
+	filterPeers(h)
+
 	// TODO : if not BR yet then only
 	peers, err := proto.Marshal(&commons.DCExpResponse{
 		Code:        code,
@@ -39,6 +43,8 @@ func broadcast(h *Hub, message []byte, err error, statusCode uint32, statusMessa
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	time.Sleep(time.Second)
 
 	for client := range h.clients {
 		select {
