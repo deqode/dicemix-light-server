@@ -25,12 +25,17 @@ const (
 	maxMessageSize = 512
 
 	maxPeers = 3
+
+	// Time to wait for response from peers.
+	responseWait = 5
 )
 
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
 )
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
@@ -46,12 +51,13 @@ type Client struct {
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
-	clients    map[*Client]bool
-	peers      []*commons.PeersInfo
-	request    chan []byte
-	register   chan *Client
-	unregister chan *Client
-	rounds     map[int]bool
+	clients       map[*Client]bool
+	peers         []*commons.PeersInfo
+	request       chan []byte
+	register      chan *Client
+	unregister    chan *Client
+	roundUUID     map[uint32]string
+	lastRoundUUID string
 	sync.Mutex
 }
 

@@ -18,9 +18,6 @@ import (
 // Runs on server side, solves polynomial
 // and returns generated roots to all clients for verification
 func Solve(dcCombined []uint64, count int) []uint64 {
-
-	fmt.Printf("%v %v\n", dcCombined, count)
-
 	// would contain results generated through solver_flint
 	outMessages := make([]string, count)
 

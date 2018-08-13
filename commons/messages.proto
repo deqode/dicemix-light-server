@@ -33,9 +33,10 @@ message RegisterResponse {
 message DiceMixResponse {
   uint32 Code = 1;
   repeated PeersInfo Peers = 2;
-  string Timestamp = 3;
-  string Message = 4;
-  string Err = 5;
+  string MessageUUID = 3;
+  string Timestamp = 4;
+  string Message = 5;
+  string Err = 6;
 }
 
 // Sub-message for DiceMixResponse
@@ -48,6 +49,7 @@ message PeersInfo {
   bool OK = 6;
   repeated bytes Messages = 7;
   bool Confirm = 8;
+  bool MessageReceived = 9;
 }
 
 // For broadcasting our public key
@@ -58,7 +60,8 @@ message KeyExchangeRequest {
   sint32 Id = 2;
   bytes PublicKey = 3;
   uint32 NumMsgs = 4;
-  string Timestamp = 5;
+  string LastMessageUUID = 5;
+  string Timestamp = 6;
 }
 
 // For broadcasting our DC Exponential Vector
@@ -68,7 +71,8 @@ message DCExpRequest {
   uint32 Code = 1;
   sint32 Id = 2;
   repeated uint64 DCExpVector = 3;
-  string Timestamp = 4;
+  string LastMessageUUID = 4;
+  string Timestamp = 5;
 }
 
 // Response against DCExpRequest
@@ -77,9 +81,10 @@ message DCExpRequest {
 message DCExpResponse {
   uint32 Code = 1;
   repeated uint64 Roots = 2;
-  string Timestamp = 3;
-  string Message = 4;
-  string Err = 5;
+  string MessageUUID = 3;
+  string Timestamp = 4;
+  string Message = 5;
+  string Err = 6;
 }
 
 // For broadcasting our DC Simple Vector
@@ -90,7 +95,8 @@ message DCSimpleRequest {
   sint32 Id = 2;
   repeated bytes DCSimpleVector = 3;
   bool MyOk = 4;
-  string Timestamp = 5;
+  string LastMessageUUID = 5;
+  string Timestamp = 6;
 }
 
 
@@ -101,5 +107,6 @@ message ConfirmationRequest {
   sint32 Id = 2;
   bool Confirm = 3;
   repeated bytes Messages = 4;
-  string Timestamp = 5;
+  string LastMessageUUID = 5;
+  string Timestamp = 6;
 }

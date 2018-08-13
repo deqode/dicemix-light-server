@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"../commons"
 	"github.com/golang/protobuf/proto"
@@ -11,12 +10,13 @@ import (
 
 func newHub() *Hub {
 	return &Hub{
-		request:    make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
-		rounds:     make(map[int]bool),
-		peers:      make([]*commons.PeersInfo, maxPeers),
+		request:       make(chan []byte),
+		register:      make(chan *Client),
+		unregister:    make(chan *Client),
+		clients:       make(map[*Client]bool),
+		roundUUID:     make(map[uint32]string),
+		lastRoundUUID: "",
+		peers:         make([]*commons.PeersInfo, maxPeers),
 	}
 }
 
@@ -68,9 +68,7 @@ func (h *Hub) registration(client *Client) bool {
 
 		if counter == maxPeers {
 			// start DiceMix Light process
-			h.rounds[joinTXRound] = true
-
-			time.Sleep(100 * time.Millisecond)
+			initRoundUUID(h)
 			h.startDicemix()
 		}
 
@@ -97,27 +95,13 @@ func (h *Hub) registration(client *Client) bool {
 
 func (h *Hub) startDicemix() {
 	peers, err := proto.Marshal(&commons.DiceMixResponse{
-		Code:      commons.S_START_DICEMIX,
-		Peers:     h.peers,
-		Timestamp: timestamp(),
-		Message:   "Initiate DiceMix Protocol",
-		Err:       "",
+		Code:        commons.S_START_DICEMIX,
+		Peers:       h.peers,
+		MessageUUID: h.roundUUID[commons.S_START_DICEMIX],
+		Timestamp:   timestamp(),
+		Message:     "Initiate DiceMix Protocol",
+		Err:         "",
 	})
 
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	for client := range h.clients {
-		select {
-		case client.send <- peers:
-		default:
-			close(client.send)
-			delete(h.clients, client)
-		}
-	}
-}
-
-func timestamp() string {
-	return time.Now().String()
+	broadcast(h, peers, err, commons.S_START_DICEMIX, "Initiate DiceMix Protocol")
 }

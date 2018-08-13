@@ -21,6 +21,8 @@ func (d *dcNet) SolveDCExponential(peers []*commons.PeersInfo) []uint64 {
 	var i, totalMsgsCount uint32
 	dcCombined := peers[0].DCVector
 
+	// NOTE: totalMsgsCount should be less than 1000 or else FLINT would fail to obtain roots
+	// and [0,0,......] will be considered as roots
 	for _, peer := range peers {
 		totalMsgsCount += peer.NumMsgs
 	}
