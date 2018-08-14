@@ -18,7 +18,8 @@ func handleRequest(message []byte, h *Hub) {
 		os.Exit(1)
 	}
 
-	// if message was not expected
+	// check if request from client was one of
+	// the expected Requests or not
 	if !contains(h.nextState, int(r.Code)) {
 		return
 	}
@@ -56,11 +57,12 @@ func handleRequest(message []byte, h *Hub) {
 		}
 
 		handleConfirmationRequest(request, h)
-
 	}
 }
 
 func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
+	// to keep track of number of clients which have already
+	// submitted this request (for current run)
 	var counter = counter(h.peers)
 
 	if counter < len(h.peers) {
@@ -83,6 +85,8 @@ func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
 }
 
 func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
+	// to keep track of number of clients which have already
+	// submitted this request (for current run)
 	var counter = counter(h.peers)
 
 	if counter < len(h.peers) {
@@ -105,6 +109,8 @@ func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
 }
 
 func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
+	// to keep track of number of clients which have already
+	// submitted this request (for current run)
 	var counter = counter(h.peers)
 
 	if counter < len(h.peers) {
@@ -128,6 +134,8 @@ func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
 }
 
 func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub) {
+	// to keep track of number of clients which have already
+	// submitted this request (for current run)
 	var counter = counter(h.peers)
 
 	if counter < len(h.peers) {

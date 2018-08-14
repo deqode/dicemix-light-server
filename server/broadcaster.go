@@ -23,10 +23,11 @@ func broadcastDiceMixResponse(h *Hub, state uint32, message string, errMessage s
 	res := filterPeers(h)
 
 	if res {
+		// if any P_Excluded trace back to KE Stage
 		switch state {
 		case commons.S_SIMPLE_DC_VECTOR, commons.S_TX_CONFIRMATION:
-			state = commons.S_KEY_EXCHANGE
-			message = "Key Exchange Response"
+			broadcastKEResponse(h)
+			return
 		}
 	}
 
@@ -38,8 +39,7 @@ func broadcastDiceMixResponse(h *Hub, state uint32, message string, errMessage s
 		Err:       errMessage,
 	})
 
-	log.Printf("BR for - %v\n", state)
-	broadcast(h, peers, err, state, message)
+	broadcast(h, peers, err, state)
 }
 
 // Removes offline peers
@@ -54,19 +54,7 @@ func broadcastDCExponentialResponse(h *Hub, state uint32, message string, errMes
 	if res {
 		switch state {
 		case commons.S_EXP_DC_VECTOR:
-			state = commons.S_KEY_EXCHANGE
-			message = "Key Exchange Response"
-
-			peers, err := proto.Marshal(&commons.DiceMixResponse{
-				Code:      state,
-				Peers:     h.peers,
-				Timestamp: timestamp(),
-				Message:   message,
-				Err:       errMessage,
-			})
-
-			log.Printf("BR for - %v, %v\n", state, res)
-			broadcast(h, peers, err, state, message)
+			broadcastKEResponse(h)
 			return
 		}
 	}
@@ -79,23 +67,38 @@ func broadcastDCExponentialResponse(h *Hub, state uint32, message string, errMes
 		Err:       errMessage,
 	})
 
-	log.Printf("BR for - %v, %v\n", state, res)
-	broadcast(h, peers, err, state, message)
+	broadcast(h, peers, err, state)
+}
+
+// creates a new run by broadcast KE Exchange Respose to active peers
+// when previous run has been discarded due to some offline peers
+func broadcastKEResponse(h *Hub) {
+	peers, err := proto.Marshal(&commons.DiceMixResponse{
+		Code:      commons.S_KEY_EXCHANGE,
+		Peers:     h.peers,
+		Timestamp: timestamp(),
+		Message:   "Key Exchange Response",
+		Err:       "",
+	})
+
+	broadcast(h, peers, err, commons.S_KEY_EXCHANGE)
 }
 
 // Broadcasts messages to active peers
 // sets lastRoundUUID to roundUUID of current Response
 // Registers a go routine to handled non responsive peers
-func broadcast(h *Hub, message []byte, err error, statusCode uint32, statusMessage string) {
+func broadcast(h *Hub, message []byte, err error, statusCode uint32) {
 	if err != nil {
 		fmt.Println(err)
 	}
 
+	// minimum peer check
 	if len(h.peers) < 2 {
-		log.Fatal("Less than two peers")
+		log.Fatal("MinPeers: Less than two peers")
 		os.Exit(1)
 	}
 
+	// wait for 1 sec before broadcasting
 	time.Sleep(time.Second)
 
 	// Broadcasts messages to active peers
@@ -108,20 +111,17 @@ func broadcast(h *Hub, message []byte, err error, statusCode uint32, statusMessa
 		}
 	}
 
+	// predict next expected RequestCode from client againts current ResponseCode
 	h.nextState = nextState(int(statusCode))
 
+	// registers a go-routine to handle offline peers
 	for _, state := range h.nextState {
 		go registerWorker(h, uint32(state))
 	}
-	// sets lastRoundUUID to roundUUID of current Response
-	// h.lastRoundUUID = h.roundUUID[statusCode]
 }
 
-// Registers a go routine to handle non responsive peers
+// registers a go-routine to handle offline peers
 func registerWorker(h *Hub, statusCode uint32) {
-
-	log.Printf("Registered for - %v\n", statusCode)
-
 	select {
 	// wait for responseWait seconds then run registerDelayHandler()
 	case <-time.After(responseWait * time.Second):

@@ -7,20 +7,7 @@ import (
 	"../commons"
 )
 
-// associates 20 letter string to each response from server side
-// client replying (to response from server side) need to add last obtained string in request
-// used for error handling cases like
-// handling delayed responses from client side
-// to protect from malicious peers trying to send messages in back and forth rounds
-// func initRoundUUID(h *Hub) {
-// 	h.roundUUID[commons.S_JOIN_RESPONSE] = randUUIDString()
-// 	h.roundUUID[commons.S_START_DICEMIX] = randUUIDString()
-// 	h.roundUUID[commons.S_KEY_EXCHANGE] = randUUIDString()
-// 	h.roundUUID[commons.S_EXP_DC_VECTOR] = randUUIDString()
-// 	h.roundUUID[commons.S_SIMPLE_DC_VECTOR] = randUUIDString()
-// 	h.roundUUID[commons.S_TX_CONFIRMATION] = randUUIDString()
-// }
-
+// returns true if (obtained ∈ expected)
 func contains(expected []int, obtained int) bool {
 	for _, value := range expected {
 		if value == obtained {
@@ -30,6 +17,8 @@ func contains(expected []int, obtained int) bool {
 	return false
 }
 
+// to keep track of number of clients which have already
+// submitted the request for corresponding RequestCode (for current run)
 func counter(peers []*commons.PeersInfo) (counter int) {
 	for _, peer := range peers {
 		if peer.MessageReceived {
