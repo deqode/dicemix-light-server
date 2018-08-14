@@ -18,6 +18,11 @@ func handleRequest(message []byte, h *Hub) {
 		os.Exit(1)
 	}
 
+	// if message was not expected
+	if !contains(h.nextState, int(r.Code)) {
+		return
+	}
+
 	switch r.Code {
 	case commons.C_KEY_EXCHANGE:
 		request := &commons.KeyExchangeRequest{}
@@ -33,7 +38,7 @@ func handleRequest(message []byte, h *Hub) {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
-
+		fmt.Printf("RECV: CODE - %v, NEXT-STATE - %v\n", r.Code, h.nextState)
 		handleDCExponentialRequest(request, h)
 	case commons.C_SIMPLE_DC_VECTOR:
 		request := &commons.DCSimpleRequest{}
@@ -56,108 +61,90 @@ func handleRequest(message []byte, h *Hub) {
 }
 
 func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
-	if h.lastRoundUUID == request.LastMessageUUID {
+	var counter = counter(h.peers)
 
-		fmt.Printf("\nH LastRoundUUID = %v\nRequest LastMessageUUID = %v\n\n", h.lastRoundUUID, request.LastMessageUUID)
-		var counter int
-		for _, peer := range h.peers {
-			if len(peer.PublicKey) != 0 {
+	if counter < len(h.peers) {
+		for i := 0; i < len(h.peers); i++ {
+			if h.peers[i].Id == request.Id {
+				h.peers[i].PublicKey = request.PublicKey
+				h.peers[i].NumMsgs = request.NumMsgs
+				h.peers[i].MessageReceived = true
+
+				fmt.Printf("Recv: handleKeyExchangeRequest PeerId - %v\n", request.Id)
 				counter++
+				break
 			}
 		}
 
-		if counter < maxPeers {
-			for i := 0; i < len(h.peers); i++ {
-				if h.peers[i].Id == request.Id {
-					h.peers[i].PublicKey = request.PublicKey
-					h.peers[i].NumMsgs = request.NumMsgs
-					h.peers[i].MessageReceived = true
-					counter++
-				}
-			}
-
-			if counter == maxPeers {
-				broadcastDiceMixResponse(h, commons.S_KEY_EXCHANGE, "Key Exchange Response", "")
-			}
+		if counter == len(h.peers) {
+			broadcastDiceMixResponse(h, commons.S_KEY_EXCHANGE, "Key Exchange Response", "")
 		}
 	}
 }
 
 func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
-	if h.lastRoundUUID == request.LastMessageUUID {
-		fmt.Printf("\nH LastRoundUUID = %v\nRequest LastMessageUUID = %v\n\n", h.lastRoundUUID, request.LastMessageUUID)
+	var counter = counter(h.peers)
 
-		var counter int
-		for _, peer := range h.peers {
-			if len(peer.DCVector) != 0 {
+	if counter < len(h.peers) {
+		for i := 0; i < len(h.peers); i++ {
+			if h.peers[i].Id == request.Id {
+				h.peers[i].DCVector = request.DCExpVector
+				h.peers[i].MessageReceived = true
+
+				fmt.Printf("Recv: handleDCExponentialRequest PeerId - %v\n", request.Id)
 				counter++
+				break
 			}
 		}
 
-		if counter < maxPeers {
-			for i := 0; i < len(h.peers); i++ {
-				if h.peers[i].Id == request.Id {
-					h.peers[i].DCVector = request.DCExpVector
-					h.peers[i].MessageReceived = true
-					counter++
-				}
-			}
-
-			if counter == maxPeers {
-				broadcastDCExponentialResponse(h, commons.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
-			}
+		if counter == len(h.peers) {
+			broadcastDCExponentialResponse(h, commons.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
 		}
 	}
+
 }
 
 func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
-	if h.lastRoundUUID == request.LastMessageUUID {
-		var counter int
-		for _, peer := range h.peers {
-			if len(peer.DCSimpleVector) != 0 {
+	var counter = counter(h.peers)
+
+	if counter < len(h.peers) {
+		for i := 0; i < len(h.peers); i++ {
+			if h.peers[i].Id == request.Id {
+				h.peers[i].DCSimpleVector = request.DCSimpleVector
+				h.peers[i].OK = request.MyOk
+				h.peers[i].MessageReceived = true
+				h.peers[i].NextPublicKey = request.NextPublicKey
+
+				fmt.Printf("Recv: handleDCSimpleRequest PeerId - %v\n", request.Id)
 				counter++
+				break
 			}
 		}
 
-		if counter < maxPeers {
-			for i := 0; i < len(h.peers); i++ {
-				if h.peers[i].Id == request.Id {
-					h.peers[i].DCSimpleVector = request.DCSimpleVector
-					h.peers[i].OK = request.MyOk
-					h.peers[i].MessageReceived = true
-					counter++
-				}
-			}
-
-			if counter == maxPeers {
-				broadcastDiceMixResponse(h, commons.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
-			}
+		if counter == len(h.peers) {
+			broadcastDiceMixResponse(h, commons.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
 		}
 	}
 }
 
 func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub) {
-	if h.lastRoundUUID == request.LastMessageUUID {
-		var counter int
-		for _, peer := range h.peers {
-			if len(peer.Messages) != 0 {
+	var counter = counter(h.peers)
+
+	if counter < len(h.peers) {
+		for i := 0; i < len(h.peers); i++ {
+			if h.peers[i].Id == request.Id {
+				h.peers[i].Messages = request.Messages
+				h.peers[i].Confirm = request.Confirm
+				h.peers[i].MessageReceived = true
+
+				fmt.Printf("Recv: handleConfirmationRequest PeerId - %v\n", request.Id)
 				counter++
+				break
 			}
 		}
 
-		if counter < maxPeers {
-			for i := 0; i < len(h.peers); i++ {
-				if h.peers[i].Id == request.Id {
-					h.peers[i].Messages = request.Messages
-					h.peers[i].Confirm = request.Confirm
-					h.peers[i].MessageReceived = true
-					counter++
-				}
-			}
-
-			if counter == maxPeers {
-				broadcastDiceMixResponse(h, commons.S_TX_CONFIRMATION, "Confirmation Response", "")
-			}
+		if counter == len(h.peers) {
+			broadcastDiceMixResponse(h, commons.S_TX_CONFIRMATION, "Confirmation Response", "")
 		}
 	}
 }

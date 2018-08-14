@@ -10,13 +10,12 @@ import (
 
 func newHub() *Hub {
 	return &Hub{
-		request:       make(chan []byte),
-		register:      make(chan *Client),
-		unregister:    make(chan *Client),
-		clients:       make(map[*Client]bool),
-		roundUUID:     make(map[uint32]string),
-		lastRoundUUID: "",
-		peers:         make([]*commons.PeersInfo, maxPeers),
+		request:    make(chan []byte),
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
+		clients:    make(map[*Client]int32),
+		nextState:  make([]int, 0),
+		peers:      make([]*commons.PeersInfo, maxPeers),
 	}
 }
 
@@ -54,7 +53,6 @@ func (h *Hub) registration(client *Client) bool {
 	counter := int32(len(h.clients))
 
 	if counter < maxPeers {
-		h.clients[client] = true
 		counter++
 
 		registration, err := proto.Marshal(&commons.RegisterResponse{
@@ -70,12 +68,14 @@ func (h *Hub) registration(client *Client) bool {
 		}
 
 		client.send <- registration
+
+		h.clients[client] = counter
 		h.peers[counter-1] = &commons.PeersInfo{Id: counter}
 		h.peers[counter-1].MessageReceived = true
 
 		if counter == maxPeers {
 			// start DiceMix Light process
-			initRoundUUID(h)
+			// initRoundUUID(h)
 			h.startDicemix()
 		}
 
@@ -103,5 +103,5 @@ func (h *Hub) registration(client *Client) bool {
 // initiates DiceMix-Light protocol
 // send all peers ID's
 func (h *Hub) startDicemix() {
-	broadcastDiceMixResponse(h, commons.S_START_DICEMIX, "Initiate DiceMix Protocol", "")
+	go broadcastDiceMixResponse(h, commons.S_START_DICEMIX, "Initiate DiceMix Protocol", "")
 }

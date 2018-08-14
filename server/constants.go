@@ -51,13 +51,12 @@ type Client struct {
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
-	clients       map[*Client]bool
-	peers         []*commons.PeersInfo
-	request       chan []byte
-	register      chan *Client
-	unregister    chan *Client
-	roundUUID     map[uint32]string
-	lastRoundUUID string
+	clients    map[*Client]int32
+	peers      []*commons.PeersInfo
+	request    chan []byte
+	register   chan *Client
+	unregister chan *Client
+	nextState  []int
 	sync.Mutex
 }
 

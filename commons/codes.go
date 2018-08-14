@@ -7,6 +7,7 @@ const (
 	C_EXP_DC_VECTOR    = 3
 	C_SIMPLE_DC_VECTOR = 4
 	C_TX_CONFIRMATION  = 5
+	C_BLAME            = 6
 )
 
 // constant Response Codes
