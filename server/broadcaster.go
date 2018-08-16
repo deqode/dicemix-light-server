@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -13,24 +12,21 @@ import (
 // Removes offline peers
 // Broadcasts message to active peers
 // Broadcasts responses for -
-// S_START_DICEMIX,
-// S_KEY_EXCHANGE,
-// S_SIMPLE_DC_VECTOR,
-// S_TX_CONFIRMATION
+// S_START_DICEMIX, S_KEY_EXCHANGE, S_SIMPLE_DC_VECTOR, S_TX_CONFIRMATION
 func broadcastDiceMixResponse(h *Hub, state uint32, message string, errMessage string) {
 	// removes offline peers
 	// returns true if removed any offline peers
 	res := filterPeers(h)
 
 	if res {
-		// if any P_Excluded trace back to KE Stage
-		switch state {
-		case commons.S_SIMPLE_DC_VECTOR, commons.S_TX_CONFIRMATION:
+		// if any P_Excluded go back to KE Stage
+		if state == commons.S_SIMPLE_DC_VECTOR {
 			broadcastKEResponse(h)
 			return
 		}
 	}
 
+	// broadcast response to all active peers
 	peers, err := proto.Marshal(&commons.DiceMixResponse{
 		Code:      state,
 		Peers:     h.peers,
@@ -42,8 +38,7 @@ func broadcastDiceMixResponse(h *Hub, state uint32, message string, errMessage s
 	broadcast(h, peers, err, state)
 }
 
-// Removes offline peers
-// Broadcasts message to active peers
+// Removes offline peers and broadcasts message to active peers
 // Broadcasts responses for -
 // S_EXP_DC_VECTOR
 func broadcastDCExponentialResponse(h *Hub, state uint32, message string, errMessage string) {
@@ -52,13 +47,13 @@ func broadcastDCExponentialResponse(h *Hub, state uint32, message string, errMes
 	res := filterPeers(h)
 
 	if res {
-		switch state {
-		case commons.S_EXP_DC_VECTOR:
+		if state == commons.S_EXP_DC_VECTOR {
 			broadcastKEResponse(h)
 			return
 		}
 	}
 
+	// broadcast response to all active peers
 	peers, err := proto.Marshal(&commons.DCExpResponse{
 		Code:      state,
 		Roots:     iDcNet.SolveDCExponential(h.peers),
@@ -84,13 +79,38 @@ func broadcastKEResponse(h *Hub) {
 	broadcast(h, peers, err, commons.S_KEY_EXCHANGE)
 }
 
+// sent if all peers agrees to continue
+// and have submitted confirmations
+func broadcastTXDone(h *Hub) {
+	peers, err := proto.Marshal(&commons.TXDoneResponse{
+		Code:      commons.S_TX_SUCCESSFUL,
+		Messages:  h.peers[0].Messages,
+		Timestamp: timestamp(),
+		Message:   "DiceMix Successful Response",
+		Err:       "",
+	})
+
+	broadcast(h, peers, err, commons.S_TX_SUCCESSFUL)
+}
+
+// sent if all peers agrees to continue
+// and have submitted confirmations
+func broadcastKESKRequest(h *Hub) {
+	peers, err := proto.Marshal(&commons.InitiaiteKESK{
+		Code:      commons.S_KESK_REQUEST,
+		Timestamp: timestamp(),
+		Message:   "Blame - send your kesk to identify culprit",
+		Err:       "",
+	})
+
+	broadcast(h, peers, err, commons.S_KESK_REQUEST)
+}
+
 // Broadcasts messages to active peers
 // sets lastRoundUUID to roundUUID of current Response
 // Registers a go routine to handled non responsive peers
 func broadcast(h *Hub, message []byte, err error, statusCode uint32) {
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkError(err)
 
 	// minimum peer check
 	if len(h.peers) < 2 {
@@ -115,9 +135,7 @@ func broadcast(h *Hub, message []byte, err error, statusCode uint32) {
 	h.nextState = nextState(int(statusCode))
 
 	// registers a go-routine to handle offline peers
-	for _, state := range h.nextState {
-		go registerWorker(h, uint32(state))
-	}
+	go registerWorker(h, uint32(h.nextState))
 }
 
 // registers a go-routine to handle offline peers

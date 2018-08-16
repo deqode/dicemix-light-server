@@ -2,157 +2,198 @@ package server
 
 import (
 	"fmt"
-	"os"
+	"log"
 
 	"../commons"
 	"github.com/golang/protobuf/proto"
 )
 
+// handles any request message from peers
 func handleRequest(message []byte, h *Hub) {
 	r := &commons.GenericRequest{}
 	h.Lock()
 	defer h.Unlock()
 
-	if err := proto.Unmarshal(message, r); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
+	err := proto.Unmarshal(message, r)
+	checkError(err)
 
 	// check if request from client was one of
 	// the expected Requests or not
-	if !contains(h.nextState, int(r.Code)) {
+	if h.nextState != int(r.Code) {
+		return
+	}
+
+	// to keep track of number of clients which have already
+	// submitted this request (for current run)
+	var counter = counter(h.peers)
+
+	if counter >= len(h.peers) {
 		return
 	}
 
 	switch r.Code {
 	case commons.C_KEY_EXCHANGE:
 		request := &commons.KeyExchangeRequest{}
-		if err := proto.Unmarshal(message, request); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
+		err = proto.Unmarshal(message, request)
+		checkError(err)
 
-		handleKeyExchangeRequest(request, h)
+		handleKeyExchangeRequest(request, h, counter)
 	case commons.C_EXP_DC_VECTOR:
 		request := &commons.DCExpRequest{}
-		if err := proto.Unmarshal(message, request); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("RECV: CODE - %v, NEXT-STATE - %v\n", r.Code, h.nextState)
-		handleDCExponentialRequest(request, h)
+		err = proto.Unmarshal(message, request)
+		checkError(err)
+
+		handleDCExponentialRequest(request, h, counter)
 	case commons.C_SIMPLE_DC_VECTOR:
 		request := &commons.DCSimpleRequest{}
-		if err := proto.Unmarshal(message, request); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
+		err = proto.Unmarshal(message, request)
+		checkError(err)
 
-		handleDCSimpleRequest(request, h)
+		handleDCSimpleRequest(request, h, counter)
 	case commons.C_TX_CONFIRMATION:
 		request := &commons.ConfirmationRequest{}
-		if err := proto.Unmarshal(message, request); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
+		err = proto.Unmarshal(message, request)
+		checkError(err)
 
-		handleConfirmationRequest(request, h)
+		handleConfirmationRequest(request, h, counter)
+	case commons.C_KESK_RESPONSE:
+		request := &commons.InitiaiteKESKResponse{}
+		err = proto.Unmarshal(message, request)
+		checkError(err)
+
+		handleInitiateKESKResponse(request, h, counter)
 	}
 }
 
-func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub) {
-	// to keep track of number of clients which have already
-	// submitted this request (for current run)
-	var counter = counter(h.peers)
+// obtains PublicKeys and NumberOfMsgs sent by peers
+func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub, counter int) {
+	for i := 0; i < len(h.peers); i++ {
+		if h.peers[i].Id == request.Id {
+			h.peers[i].PublicKey = request.PublicKey
+			h.peers[i].NumMsgs = request.NumMsgs
+			h.peers[i].MessageReceived = true
 
-	if counter < len(h.peers) {
-		for i := 0; i < len(h.peers); i++ {
-			if h.peers[i].Id == request.Id {
-				h.peers[i].PublicKey = request.PublicKey
-				h.peers[i].NumMsgs = request.NumMsgs
-				h.peers[i].MessageReceived = true
-
-				fmt.Printf("Recv: handleKeyExchangeRequest PeerId - %v\n", request.Id)
-				counter++
-				break
-			}
+			fmt.Printf("Recv: handleKeyExchangeRequest PeerId - %v\n", request.Id)
+			counter++
+			break
 		}
+	}
 
-		if counter == len(h.peers) {
-			broadcastDiceMixResponse(h, commons.S_KEY_EXCHANGE, "Key Exchange Response", "")
-		}
+	// if all active peers have submitted their response
+	if counter == len(h.peers) {
+		broadcastDiceMixResponse(h, commons.S_KEY_EXCHANGE, "Key Exchange Response", "")
 	}
 }
 
-func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub) {
-	// to keep track of number of clients which have already
-	// submitted this request (for current run)
-	var counter = counter(h.peers)
+// obtains DC-EXP vector sent by peers
+func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub, counter int) {
+	for i := 0; i < len(h.peers); i++ {
+		if h.peers[i].Id == request.Id {
+			h.peers[i].DCVector = request.DCExpVector
+			h.peers[i].MessageReceived = true
 
-	if counter < len(h.peers) {
-		for i := 0; i < len(h.peers); i++ {
-			if h.peers[i].Id == request.Id {
-				h.peers[i].DCVector = request.DCExpVector
-				h.peers[i].MessageReceived = true
-
-				fmt.Printf("Recv: handleDCExponentialRequest PeerId - %v\n", request.Id)
-				counter++
-				break
-			}
-		}
-
-		if counter == len(h.peers) {
-			broadcastDCExponentialResponse(h, commons.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
+			fmt.Printf("Recv: handleDCExponentialRequest PeerId - %v\n", request.Id)
+			counter++
+			break
 		}
 	}
 
-}
-
-func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub) {
-	// to keep track of number of clients which have already
-	// submitted this request (for current run)
-	var counter = counter(h.peers)
-
-	if counter < len(h.peers) {
-		for i := 0; i < len(h.peers); i++ {
-			if h.peers[i].Id == request.Id {
-				h.peers[i].DCSimpleVector = request.DCSimpleVector
-				h.peers[i].OK = request.MyOk
-				h.peers[i].MessageReceived = true
-				h.peers[i].NextPublicKey = request.NextPublicKey
-
-				fmt.Printf("Recv: handleDCSimpleRequest PeerId - %v\n", request.Id)
-				counter++
-				break
-			}
-		}
-
-		if counter == len(h.peers) {
-			broadcastDiceMixResponse(h, commons.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
-		}
+	// if all active peers have submitted their response
+	if counter == len(h.peers) {
+		broadcastDCExponentialResponse(h, commons.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
 	}
 }
 
-func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub) {
-	// to keep track of number of clients which have already
-	// submitted this request (for current run)
-	var counter = counter(h.peers)
+// obtains DC-SIMPLE vector sent by peers
+func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub, counter int) {
+	for i := 0; i < len(h.peers); i++ {
+		if h.peers[i].Id == request.Id {
+			h.peers[i].DCSimpleVector = request.DCSimpleVector
+			h.peers[i].OK = request.MyOk
+			h.peers[i].MessageReceived = true
+			h.peers[i].NextPublicKey = request.NextPublicKey
 
-	if counter < len(h.peers) {
-		for i := 0; i < len(h.peers); i++ {
-			if h.peers[i].Id == request.Id {
-				h.peers[i].Messages = request.Messages
-				h.peers[i].Confirm = request.Confirm
-				h.peers[i].MessageReceived = true
-
-				fmt.Printf("Recv: handleConfirmationRequest PeerId - %v\n", request.Id)
-				counter++
-				break
-			}
-		}
-
-		if counter == len(h.peers) {
-			broadcastDiceMixResponse(h, commons.S_TX_CONFIRMATION, "Confirmation Response", "")
+			fmt.Printf("Recv: handleDCSimpleRequest PeerId - %v\n", request.Id)
+			counter++
+			break
 		}
 	}
+
+	// if all active peers have submitted their response
+	if counter == len(h.peers) {
+		broadcastDiceMixResponse(h, commons.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
+	}
+}
+
+// obtains confirmations from peers
+// if all peers provided valid confirmations then Dicemix is successful
+// else moved to BLAME stage
+func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub, counter int) {
+	for i := 0; i < len(h.peers); i++ {
+		if h.peers[i].Id == request.Id {
+			h.peers[i].Messages = request.Messages
+			h.peers[i].Confirmation = request.Confirmation
+			h.peers[i].MessageReceived = true
+
+			fmt.Printf("Recv: handleConfirmationRequest PeerId - %v\n", request.Id)
+			counter++
+			break
+		}
+	}
+
+	// if all active peers have submitted their response
+	if counter == len(h.peers) {
+		checkConfirmations(h)
+	}
+}
+
+// obtains KESK of peers
+// used in BLAME stage to identify malicious peer
+func handleInitiateKESKResponse(request *commons.InitiaiteKESKResponse, h *Hub, counter int) {
+	for i := 0; i < len(h.peers); i++ {
+		if h.peers[i].Id == request.Id {
+			h.peers[i].PrivateKey = request.PrivateKey
+			h.peers[i].MessageReceived = true
+
+			fmt.Printf("Recv: handleInitiateKESKResponse PeerId - %v\n", request.Id)
+			counter++
+			break
+		}
+	}
+
+	// if all active peers have submitted their kesk
+	if counter == len(h.peers) {
+		// TODO: START-BLAME()
+	}
+}
+
+// checks if all peers have submitted a valid confirmation for msgs
+// if yes then DiceMix protocol is considered as successful
+// else moves to BLAME stage
+func checkConfirmations(h *Hub) {
+	// removes offline peers
+	// returns true if removed any offline peers
+	res := filterPeers(h)
+
+	// if any P_Excluded trace back to KE Stage
+	if res {
+		broadcastKEResponse(h)
+		return
+	}
+
+	msgs := h.peers[0].Messages
+
+	// check if any of peers does'nt agree to continue
+	for _, peer := range h.peers {
+		if !equals(peer.Messages, msgs) ||
+			len(peer.Confirmation) == 0 {
+			// Blame stage - INIT KESK
+			log.Printf("BLAME Stage - Peer %v does'nt provide corfirmation", peer.Id)
+			broadcastKESKRequest(h)
+			return
+		}
+	}
+
+	// DiceMix is successful
+	broadcastTXDone(h)
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"../dc"
@@ -53,7 +54,6 @@ func (c *Client) readMessage() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-	// c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
@@ -111,5 +111,14 @@ func (c *Client) writeMessage() {
 				return
 			}
 		}
+	}
+}
+
+// checks for any potential errors
+// exists program if one found
+func checkError(err error) {
+	if err != nil {
+		log.Fatal("Error Occured:", err)
+		os.Exit(1)
 	}
 }

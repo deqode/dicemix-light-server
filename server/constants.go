@@ -21,9 +21,7 @@ const (
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 
-	// Maximum message size allowed from peer.
-	maxMessageSize = 512
-
+	// number of peers required to start DiceMix protocol
 	maxPeers = 3
 
 	// Time to wait for response from peers.
@@ -34,8 +32,6 @@ var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
 )
-
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
@@ -56,7 +52,7 @@ type Hub struct {
 	request    chan []byte
 	register   chan *Client
 	unregister chan *Client
-	nextState  []int
+	nextState  int
 	sync.Mutex
 }
 

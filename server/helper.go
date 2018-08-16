@@ -13,7 +13,7 @@ import (
 // then remove them and consider those peers as offline
 // and broadcast mesage to active peers
 func registerDelayHandler(h *Hub, state int) {
-	if !contains(h.nextState, state) {
+	if h.nextState != state {
 		log.Printf("Round has been done already %v\n", state)
 		return
 	}
@@ -31,8 +31,10 @@ func registerDelayHandler(h *Hub, state int) {
 		broadcastDiceMixResponse(h, commons.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
 	case commons.C_TX_CONFIRMATION:
 		// if some peers have not submitted their CONFIRMATION
-		broadcastDiceMixResponse(h, commons.S_TX_CONFIRMATION, "Confirmation Response", "")
-
+		checkConfirmations(h)
+	case commons.C_KESK_RESPONSE:
+		// if some peers have not submitted their KESK
+		// TODO: START-BLAME()
 	}
 }
 
@@ -44,16 +46,19 @@ func filterPeers(h *Hub) bool {
 	h.peers = make([]*commons.PeersInfo, 0)
 
 	for _, peer := range allPeers {
+		// check if client is active and has submitted response
 		if peer.MessageReceived {
 			peer.MessageReceived = false
 			h.peers = append(h.peers, peer)
-		} else {
-			if client, ok := mapkey(h.clients, peer.Id); ok {
-				// remove offline peers from clients
-				fmt.Printf("USER UN-REGISTRATION - %v\n", peer.Id)
-				delete(h.clients, client)
-				close(client.send)
-			}
+			continue
+		}
+
+		// if client is offline and not submitted response
+		if client, ok := mapkey(h.clients, peer.Id); ok {
+			// remove offline peers from clients
+			fmt.Printf("USER UN-REGISTRATION - %v\n", peer.Id)
+			delete(h.clients, client)
+			close(client.send)
 		}
 	}
 	// removed any offline peer?
@@ -61,22 +66,19 @@ func filterPeers(h *Hub) bool {
 }
 
 // predicts next expected RequestCodes from client againts current ResponseCode
-func nextState(responseCode int) (nextState []int) {
-	nextState = make([]int, 0)
-
+func nextState(responseCode int) int {
 	switch responseCode {
 	case commons.S_START_DICEMIX:
-		nextState = append(nextState, commons.C_KEY_EXCHANGE)
+		return commons.C_KEY_EXCHANGE
 	case commons.S_KEY_EXCHANGE:
-		nextState = append(nextState, commons.C_EXP_DC_VECTOR)
+		return commons.C_EXP_DC_VECTOR
 	case commons.S_EXP_DC_VECTOR:
-		nextState = append(nextState, commons.C_SIMPLE_DC_VECTOR)
+		return commons.C_SIMPLE_DC_VECTOR
 	case commons.S_SIMPLE_DC_VECTOR:
-		nextState = append(nextState, commons.C_TX_CONFIRMATION)
-		nextState = append(nextState, commons.C_BLAME)
-		// case commons.S_TX_CONFIRMATION:
-		// 		nextState.append(commons.C_KEY_EXCHANGE)
+		return commons.C_TX_CONFIRMATION
+	case commons.S_KESK_REQUEST:
+		return commons.C_KESK_RESPONSE
 	}
 
-	return
+	return 0
 }

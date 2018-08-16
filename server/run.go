@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log"
 
 	"../commons"
@@ -14,7 +13,7 @@ func newHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]int32),
-		nextState:  make([]int, 0),
+		nextState:  0,
 		peers:      make([]*commons.PeersInfo, maxPeers),
 	}
 }
@@ -52,52 +51,42 @@ func (h *Hub) registration(client *Client) bool {
 	defer h.Unlock()
 	counter := int32(len(h.clients))
 
-	if counter < maxPeers {
-		counter++
-
+	if counter >= maxPeers {
 		registration, err := proto.Marshal(&commons.RegisterResponse{
 			Code:      commons.S_JOIN_RESPONSE,
-			Id:        counter,
+			Id:        -1,
 			Timestamp: timestamp(),
-			Message:   "Welcome to CoinShuffle++\nWaiting for other peers to join ...",
-			Err:       "",
+			Message:   "",
+			Err:       "Limit Exceeded. Kindly try after some time",
 		})
 
-		if err != nil {
-			fmt.Println(err)
-		}
-
+		checkError(err)
 		client.send <- registration
-
-		h.clients[client] = counter
-		h.peers[counter-1] = &commons.PeersInfo{Id: counter}
-		h.peers[counter-1].MessageReceived = true
-
-		if counter == maxPeers {
-			// start DiceMix Light process
-			// initRoundUUID(h)
-			h.startDicemix()
-		}
-
-		return true
+		return false
 	}
 
-	// send message
+	counter++
 	registration, err := proto.Marshal(&commons.RegisterResponse{
 		Code:      commons.S_JOIN_RESPONSE,
-		Id:        -1,
+		Id:        counter,
 		Timestamp: timestamp(),
-		Message:   "",
-		Err:       "Limit Exceeded. Kindly try after some time",
+		Message:   "Welcome to CoinShuffle++. Waiting for other peers to join ...",
+		Err:       "",
 	})
 
-	if err != nil {
-		fmt.Println(err)
-	}
-
+	checkError(err)
 	client.send <- registration
 
-	return false
+	h.clients[client] = counter
+	h.peers[counter-1] = &commons.PeersInfo{Id: counter}
+	h.peers[counter-1].MessageReceived = true
+
+	if counter == maxPeers {
+		// start DiceMix Light process
+		// initRoundUUID(h)
+		h.startDicemix()
+	}
+	return true
 }
 
 // initiates DiceMix-Light protocol
