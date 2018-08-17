@@ -1,10 +1,10 @@
 package server
 
 import (
-	"fmt"
 	"log"
 
 	"../messages"
+	"../utils"
 	"github.com/jinzhu/copier"
 )
 
@@ -55,15 +55,41 @@ func filterPeers(h *Hub) bool {
 		}
 
 		// if client is offline and not submitted response
-		if client, ok := mapkey(h.clients, peer.Id); ok {
-			// remove offline peers from clients
-			fmt.Printf("USER UN-REGISTRATION - %v\n", peer.Id)
-			delete(h.clients, client)
-			close(client.send)
-		}
+		removePeer(h, peer.Id)
 	}
 	// removed any offline peer?
 	return len(allPeers) != len(h.peers)
+}
+
+// checks if all peers have submitted a valid confirmation for msgs
+// if yes then DiceMix protocol is considered as successful
+// else moves to BLAME stage
+func checkConfirmations(h *Hub) {
+	// removes offline peers
+	// returns true if removed any offline peers
+	res := filterPeers(h)
+
+	// if any P_Excluded trace back to KE Stage
+	if res {
+		broadcastKEResponse(h)
+		return
+	}
+
+	msgs := h.peers[0].Messages
+
+	// check if any of peers does'nt agree to continue
+	for _, peer := range h.peers {
+		if !utils.EqualBytes(peer.Messages, msgs) ||
+			len(peer.Confirmation) == 0 {
+			// Blame stage - INIT KESK
+			log.Printf("BLAME Stage - Peer %v does'nt provide corfirmation", peer.Id)
+			broadcastKESKRequest(h)
+			return
+		}
+	}
+
+	// DiceMix is successful
+	broadcastTXDone(h)
 }
 
 // predicts next expected RequestCodes from client againts current ResponseCode
@@ -82,4 +108,27 @@ func nextState(responseCode int) int {
 	}
 
 	return 0
+}
+
+// to keep track of number of clients which have already
+// submitted the request for corresponding RequestCode (for current run)
+func counter(peers []*messages.PeersInfo) (counter int) {
+	for _, peer := range peers {
+		if peer.MessageReceived {
+			counter++
+		}
+	}
+	return
+}
+
+// returns key by value from map
+func mapkey(m map[*Client]int32, value int32) (key *Client, ok bool) {
+	for k, v := range m {
+		if v == value {
+			key = k
+			ok = true
+			return
+		}
+	}
+	return
 }

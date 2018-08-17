@@ -2,10 +2,41 @@ package server
 
 import (
 	"log"
+	"sync"
 
 	"../messages"
+	"../utils"
 	"github.com/golang/protobuf/proto"
+	"github.com/gorilla/websocket"
 )
+
+// Client is a middleman between the websocket connection and the hub.
+type Client struct {
+	hub *Hub
+
+	// The websocket connection.
+	conn *websocket.Conn
+
+	// Buffered channel of outbound messages.
+	send chan []byte
+}
+
+// Hub maintains the set of active clients and broadcasts messages to the
+// clients.
+type Hub struct {
+	clients    map[*Client]int32
+	peers      []*messages.PeersInfo
+	request    chan []byte
+	register   chan *Client
+	unregister chan *Client
+	nextState  int
+	sync.Mutex
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 func newHub() *Hub {
 	return &Hub{
@@ -14,7 +45,7 @@ func newHub() *Hub {
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]int32),
 		nextState:  0,
-		peers:      make([]*messages.PeersInfo, maxPeers),
+		peers:      make([]*messages.PeersInfo, utils.MinPeers),
 	}
 }
 
@@ -51,11 +82,11 @@ func (h *Hub) registration(client *Client) bool {
 	defer h.Unlock()
 	counter := int32(len(h.clients))
 
-	if counter >= maxPeers {
+	if counter >= utils.MinPeers {
 		registration, err := proto.Marshal(&messages.RegisterResponse{
 			Code:      messages.S_JOIN_RESPONSE,
 			Id:        -1,
-			Timestamp: timestamp(),
+			Timestamp: utils.Timestamp(),
 			Message:   "",
 			Err:       "Limit Exceeded. Kindly try after some time",
 		})
@@ -69,7 +100,7 @@ func (h *Hub) registration(client *Client) bool {
 	registration, err := proto.Marshal(&messages.RegisterResponse{
 		Code:      messages.S_JOIN_RESPONSE,
 		Id:        counter,
-		Timestamp: timestamp(),
+		Timestamp: utils.Timestamp(),
 		Message:   "Welcome to CoinShuffle++. Waiting for other peers to join ...",
 		Err:       "",
 	})
@@ -81,7 +112,7 @@ func (h *Hub) registration(client *Client) bool {
 	h.peers[counter-1] = &messages.PeersInfo{Id: counter}
 	h.peers[counter-1].MessageReceived = true
 
-	if counter == maxPeers {
+	if counter == utils.MinPeers {
 		// start DiceMix Light process
 		// initRoundUUID(h)
 		h.startDicemix()

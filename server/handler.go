@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 
 	"../messages"
 	"github.com/golang/protobuf/proto"
@@ -166,35 +165,4 @@ func handleInitiateKESKResponse(request *messages.InitiaiteKESKResponse, h *Hub,
 		// TODO: START-BLAME()
 		startBlame(h)
 	}
-}
-
-// checks if all peers have submitted a valid confirmation for msgs
-// if yes then DiceMix protocol is considered as successful
-// else moves to BLAME stage
-func checkConfirmations(h *Hub) {
-	// removes offline peers
-	// returns true if removed any offline peers
-	res := filterPeers(h)
-
-	// if any P_Excluded trace back to KE Stage
-	if res {
-		broadcastKEResponse(h)
-		return
-	}
-
-	msgs := h.peers[0].Messages
-
-	// check if any of peers does'nt agree to continue
-	for _, peer := range h.peers {
-		if !equals(peer.Messages, msgs) ||
-			len(peer.Confirmation) == 0 {
-			// Blame stage - INIT KESK
-			log.Printf("BLAME Stage - Peer %v does'nt provide corfirmation", peer.Id)
-			broadcastKESKRequest(h)
-			return
-		}
-	}
-
-	// DiceMix is successful
-	broadcastTXDone(h)
 }

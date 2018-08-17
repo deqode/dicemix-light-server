@@ -1,12 +1,14 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"../dc"
+	"../utils"
 	"github.com/gorilla/websocket"
 )
 
@@ -54,8 +56,8 @@ func (c *Client) readMessage() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.conn.SetReadDeadline(time.Now().Add(utils.PongWait))
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(utils.PongWait)); return nil })
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
@@ -74,7 +76,7 @@ func (c *Client) readMessage() {
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
 func (c *Client) writeMessage() {
-	ticker := time.NewTicker(pingPeriod)
+	ticker := time.NewTicker(utils.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
@@ -82,7 +84,7 @@ func (c *Client) writeMessage() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.conn.SetWriteDeadline(time.Now().Add(utils.WriteWait))
 			if !ok {
 				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
@@ -98,7 +100,7 @@ func (c *Client) writeMessage() {
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
+				w.Write(utils.Newline)
 				w.Write(<-c.send)
 			}
 
@@ -106,11 +108,22 @@ func (c *Client) writeMessage() {
 				return
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.conn.SetWriteDeadline(time.Now().Add(utils.WriteWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}
+	}
+}
+
+// remove a peer from set of all peers
+func removePeer(h *Hub, id int32) {
+	// if client is offline and not submitted response
+	if client, ok := mapkey(h.clients, id); ok {
+		// remove offline peers from clients
+		fmt.Printf("USER UN-REGISTRATION - %v\n", id)
+		delete(h.clients, client)
+		close(client.send)
 	}
 }
 

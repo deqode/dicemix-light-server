@@ -1,64 +1,116 @@
 package server
 
-// import (
-// 	"../nike"
-// 	"../rng"
-// )
+import (
+	"../nike"
+	"../rng"
+	"../utils"
+)
 
-// // Peer - contains information of peers of a Member
-// type Peer struct {
-// 	ID        int32
-// 	PublicKey []byte
-// 	SharedKey []byte
-// 	Dicemix   rng.DiceMixRng
-// }
-
-// // Member - contains details of participant in Blame stage
-// type Member struct {
-// 	ID           int32
-// 	PrivateKey   []byte
-// 	PublicKey    []byte
-// 	Peers        []*Peer
-// 	Messages     [][]byte
-// 	MessagesHash []uint64
-// }
-
-func startBlame(h *Hub) {
-	// 	var members = make([]*Member, 0)
-
-	// 	initBlame(h, members)
-
-	// 	// var roots = generateroots()
+// Peer - contains information of peers of a Participant
+type Peer struct {
+	ID        int32
+	SharedKey []byte
+	Dicemix   rng.DiceMixRng
 }
 
-// func initBlame(h *Hub, members []*Member) {
-// 	for _, peer := range h.peers {
-// 		if !peer.MessageReceived {
-// 			continue
-// 		}
+// Participant - contains details of participant in Blame stage
+type Participant struct {
+	ID           int32
+	Peers        []*Peer
+	Messages     [][]byte
+	MessagesHash []uint64
+}
 
-// 		var member = &Member{}
-// 		member.ID = peer.Id
-// 		member.PrivateKey = peer.PrivateKey
-// 		member.PublicKey = peer.PublicKey
-// 		member.Messages = peer.DCSimpleVector
-// 		member.Peers = make([]*Peer, 0)
+func startBlame(h *Hub) {
+	var participants = make([]*Participant, 0)
+	var roots = iDcNet.SolveDCExponential(h.peers)
 
-// 		for _, otherPeer := range h.peers {
-// 			if peer.Id == otherPeer.Id {
-// 				continue
-// 			}
+	// identifies honest peers (who have expected protocol messages)
+	initBlame(h, participants, roots)
 
-// 			var peer = &Peer{}
-// 			peer.ID = otherPeer.Id
-// 			peer.PublicKey = otherPeer.PublicKey
-// 			nike.DeriveSharedKeys(member)
-// 			member.Peers = append(member.Peers, peer)
-// 		}
+	// removes malicious and offline peers
+	// i.e. those peers who have sent unexpected protocol messages
+	filterPeers(h)
+}
 
-// 		// recover messages
-// 		members = append(members, member)
-// 	}
-// }
+// Exclude peers who have sent unexpected protocol messages
+func initBlame(h *Hub, participants []*Participant, roots []uint64) {
+	nike := nike.NewNike()
 
-// func recoverMessages() {}
+	for i := 0; i < len(h.peers); i++ {
+		peer := h.peers[i]
+
+		// TODO: check if peer has sent correct private key
+		// validate(privateKey, publicKey) key pairs
+		if !peer.MessageReceived {
+			continue
+		}
+
+		var participant = &Participant{}
+		participant.ID = peer.Id
+		participant.Messages = peer.DCSimpleVector
+		participant.Peers = make([]*Peer, 0)
+
+		privateKey := peer.PrivateKey
+
+		for _, otherPeer := range h.peers {
+			if peer.Id == otherPeer.Id {
+				continue
+			}
+
+			// derive sharedSecret with otherPeers
+			var peer = &Peer{}
+			peer.ID = otherPeer.Id
+			peer.SharedKey, peer.Dicemix = nike.DeriveSharedKeys(privateKey, otherPeer.PublicKey)
+			participant.Peers = append(participant.Peers, peer)
+		}
+
+		// recover messages
+		participant.Messages = recoverMessages(participant.Peers, participant.Messages)
+
+		// verify messages
+		ok := verifyMessagesHash(participant.Messages, roots)
+
+		if !ok {
+			// set peer.MessageReceived to false
+			// so it would be removed by filterPeers()
+			h.peers[i].MessageReceived = false
+			continue
+		}
+
+		participants = append(participants, participant)
+	}
+}
+
+// recovers honest peers messages from his DC-SIMPLE vector
+// by cancelling out randomness
+func recoverMessages(peers []*Peer, messages [][]byte) [][]byte {
+	messages = decodeMessages(peers, messages)
+	messages = utils.RemoveEmpty(messages)
+	return messages
+}
+
+// decodes messages from slots
+func decodeMessages(peers []*Peer, messages [][]byte) [][]byte {
+	for i := 0; i < len(peers); i++ {
+		for j := 0; j < len(messages); j++ {
+			// decodes messages
+			// xor operation - messages[j] = dc_simple_vector[j] + <randomness for chacha20>
+			utils.XorBytes(messages[j], messages[j], peers[i].Dicemix.GetBytes(20))
+		}
+	}
+
+	return messages
+}
+
+// checks if message sent by peer in DC-Simple
+// and Hash sent by him in DC-EXP are related or not
+func verifyMessagesHash(messages [][]byte, roots []uint64) bool {
+	for _, message := range messages {
+		messageHash := utils.Reduce(utils.ShortHash(utils.BytesToBase58String(message)))
+		if !utils.ContainsHash(messageHash, roots) {
+			return false
+		}
+	}
+	return true
+}

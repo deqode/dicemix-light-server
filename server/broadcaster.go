@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"../messages"
+	"../utils"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -30,7 +31,7 @@ func broadcastDiceMixResponse(h *Hub, state uint32, message string, errMessage s
 	peers, err := proto.Marshal(&messages.DiceMixResponse{
 		Code:      state,
 		Peers:     h.peers,
-		Timestamp: timestamp(),
+		Timestamp: utils.Timestamp(),
 		Message:   message,
 		Err:       errMessage,
 	})
@@ -57,7 +58,7 @@ func broadcastDCExponentialResponse(h *Hub, state uint32, message string, errMes
 	peers, err := proto.Marshal(&messages.DCExpResponse{
 		Code:      state,
 		Roots:     iDcNet.SolveDCExponential(h.peers),
-		Timestamp: timestamp(),
+		Timestamp: utils.Timestamp(),
 		Message:   message,
 		Err:       errMessage,
 	})
@@ -71,7 +72,7 @@ func broadcastKEResponse(h *Hub) {
 	peers, err := proto.Marshal(&messages.DiceMixResponse{
 		Code:      messages.S_KEY_EXCHANGE,
 		Peers:     h.peers,
-		Timestamp: timestamp(),
+		Timestamp: utils.Timestamp(),
 		Message:   "Key Exchange Response",
 		Err:       "",
 	})
@@ -85,7 +86,7 @@ func broadcastTXDone(h *Hub) {
 	peers, err := proto.Marshal(&messages.TXDoneResponse{
 		Code:      messages.S_TX_SUCCESSFUL,
 		Messages:  h.peers[0].Messages,
-		Timestamp: timestamp(),
+		Timestamp: utils.Timestamp(),
 		Message:   "DiceMix Successful Response",
 		Err:       "",
 	})
@@ -98,7 +99,7 @@ func broadcastTXDone(h *Hub) {
 func broadcastKESKRequest(h *Hub) {
 	peers, err := proto.Marshal(&messages.InitiaiteKESK{
 		Code:      messages.S_KESK_REQUEST,
-		Timestamp: timestamp(),
+		Timestamp: utils.Timestamp(),
 		Message:   "Blame - send your kesk to identify culprit",
 		Err:       "",
 	})
@@ -142,7 +143,7 @@ func broadcast(h *Hub, message []byte, err error, statusCode uint32) {
 func registerWorker(h *Hub, statusCode uint32) {
 	select {
 	// wait for responseWait seconds then run registerDelayHandler()
-	case <-time.After(responseWait * time.Second):
+	case <-time.After(utils.ResponseWait * time.Second):
 		registerDelayHandler(h, int(statusCode))
 	}
 }
