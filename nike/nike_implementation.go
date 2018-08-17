@@ -5,7 +5,6 @@ import (
 
 	"../ecdh"
 	"../rng"
-	"../server"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,25 +18,23 @@ func NewNike() NIKE {
 	return &nike{}
 }
 
-// DeriveSharedKeys - derives shared keys for all peers
+// DeriveSharedKeys - derives shared keys from My Private Key and Peers Public Key
 // generates RNG based on shared key using ChaCha20
-func (n *nike) DeriveSharedKeys(member *server.Member) {
+func (n *nike) DeriveSharedKeys(priv []byte, pub []byte) ([]byte, rng.DiceMixRng) {
 	ecdh := ecdh.NewCurve25519ECDH()
-	peersCount := len((*member).Peers)
-	privateKey, _ := ecdh.UnmarshalSK(member.PrivateKey)
+	privateKey, _ := ecdh.UnmarshalSK(priv)
+	publicKey, res := ecdh.Unmarshal(pub)
 
-	for i := 0; i < peersCount; i++ {
-		var pubkey, res = ecdh.Unmarshal((*member).Peers[i].PublicKey)
-		if !res {
-			log.Fatalf("Error: generating NIKE Shared Keys %v", res)
-		}
-		var err error
-		(*member).Peers[i].SharedKey, err = ecdh.GenerateSharedSecret(privateKey, pubkey)
-
-		if err != nil {
-			log.Fatalf("Error: generating NIKE Shared Keys %v", err)
-		}
-
-		(*member).Peers[i].Dicemix = rng.NewRng((*member).Peers[i].SharedKey)
+	if !res {
+		log.Fatalf("Error: generating NIKE Shared Keys %v", res)
 	}
+
+	sharedKey, err := ecdh.GenerateSharedSecret(privateKey, publicKey)
+
+	if err != nil {
+		log.Fatalf("Error: generating NIKE Shared Keys %v", err)
+	}
+
+	dicemix := rng.NewRng(sharedKey)
+	return sharedKey, dicemix
 }

@@ -1,8 +1,8 @@
 package nike
 
-import "../server"
+import "../rng"
 
 // NIKE - The main interface for Non-interactive Key Exchange (NIKE).
 type NIKE interface {
-	DeriveSharedKeys(*server.Member)
+	DeriveSharedKeys([]byte, []byte) ([]byte, rng.DiceMixRng)
 }
