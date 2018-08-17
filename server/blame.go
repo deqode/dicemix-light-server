@@ -26,15 +26,20 @@ func startBlame(h *Hub) {
 	var roots = iDcNet.SolveDCExponential(h.peers)
 
 	// identifies honest peers (who have expected protocol messages)
-	initBlame(h, participants, roots)
+	participants = initBlame(h, participants, roots)
+
+	// TODO: detection of slot collision
 
 	// removes malicious and offline peers
 	// i.e. those peers who have sent unexpected protocol messages
 	filterPeers(h)
+
+	rotateKeys(h)
+	broadcastKEResponse(h)
 }
 
 // Exclude peers who have sent unexpected protocol messages
-func initBlame(h *Hub, participants []*Participant, roots []uint64) {
+func initBlame(h *Hub, participants []*Participant, roots []uint64) []*Participant {
 	nike := nike.NewNike()
 
 	for i := 0; i < len(h.peers); i++ {
@@ -69,7 +74,8 @@ func initBlame(h *Hub, participants []*Participant, roots []uint64) {
 		participant.Messages = recoverMessages(participant.Peers, participant.Messages)
 
 		// verify messages
-		ok := verifyMessagesHash(participant.Messages, roots)
+		hashes, ok := verifyMessagesHash(participant.Messages, roots)
+		participant.MessagesHash = hashes
 
 		if !ok {
 			// set peer.MessageReceived to false
@@ -80,6 +86,8 @@ func initBlame(h *Hub, participants []*Participant, roots []uint64) {
 
 		participants = append(participants, participant)
 	}
+
+	return participants
 }
 
 // recovers honest peers messages from his DC-SIMPLE vector
@@ -105,12 +113,22 @@ func decodeMessages(peers []*Peer, messages [][]byte) [][]byte {
 
 // checks if message sent by peer in DC-Simple
 // and Hash sent by him in DC-EXP are related or not
-func verifyMessagesHash(messages [][]byte, roots []uint64) bool {
+func verifyMessagesHash(messages [][]byte, roots []uint64) ([]uint64, bool) {
+	var hashes = make([]uint64, 0)
 	for _, message := range messages {
 		messageHash := utils.Reduce(utils.ShortHash(utils.BytesToBase58String(message)))
+		hashes = append(hashes, messageHash)
 		if !utils.ContainsHash(messageHash, roots) {
-			return false
+			return nil, false
 		}
 	}
-	return true
+	return hashes, true
+}
+
+// rotate keys to be used in next run
+func rotateKeys(h *Hub) {
+	for i := 0; i < len(h.peers); i++ {
+		h.peers[i].PublicKey = h.peers[i].NextPublicKey
+		h.peers[i].NextPublicKey = nil
+	}
 }
