@@ -19,7 +19,8 @@ func NewDCNetwork() DC {
 // and generates dc_combined[]
 func (d *dcNet) SolveDCExponential(peers []*messages.PeersInfo) []uint64 {
 	var i, totalMsgsCount uint32
-	dcCombined := peers[0].DCVector
+	var dcCombined = make([]uint64, len(peers[0].DCVector))
+	copy(dcCombined, peers[0].DCVector)
 
 	// NOTE: totalMsgsCount should be less than 1000 or else FLINT would fail to obtain roots
 	// and [0,0,......] will be considered as roots
@@ -34,6 +35,5 @@ func (d *dcNet) SolveDCExponential(peers []*messages.PeersInfo) []uint64 {
 			dcCombined[i] = uint64(op1.Add(op2).Fp)
 		}
 	}
-
 	return solver.Solve(dcCombined, int(totalMsgsCount))
 }
