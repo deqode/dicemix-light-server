@@ -1,10 +1,10 @@
 package dc
 
 import (
-	"../commons"
+	"../messages"
 )
 
 // DC - The main interface DC_NET.
 type DC interface {
-	SolveDCExponential([]*commons.PeersInfo) []uint64
+	SolveDCExponential([]*messages.PeersInfo) []uint64
 }

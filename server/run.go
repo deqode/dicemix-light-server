@@ -3,7 +3,7 @@ package server
 import (
 	"log"
 
-	"../commons"
+	"../messages"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -14,7 +14,7 @@ func newHub() *Hub {
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]int32),
 		nextState:  0,
-		peers:      make([]*commons.PeersInfo, maxPeers),
+		peers:      make([]*messages.PeersInfo, maxPeers),
 	}
 }
 
@@ -52,8 +52,8 @@ func (h *Hub) registration(client *Client) bool {
 	counter := int32(len(h.clients))
 
 	if counter >= maxPeers {
-		registration, err := proto.Marshal(&commons.RegisterResponse{
-			Code:      commons.S_JOIN_RESPONSE,
+		registration, err := proto.Marshal(&messages.RegisterResponse{
+			Code:      messages.S_JOIN_RESPONSE,
 			Id:        -1,
 			Timestamp: timestamp(),
 			Message:   "",
@@ -66,8 +66,8 @@ func (h *Hub) registration(client *Client) bool {
 	}
 
 	counter++
-	registration, err := proto.Marshal(&commons.RegisterResponse{
-		Code:      commons.S_JOIN_RESPONSE,
+	registration, err := proto.Marshal(&messages.RegisterResponse{
+		Code:      messages.S_JOIN_RESPONSE,
 		Id:        counter,
 		Timestamp: timestamp(),
 		Message:   "Welcome to CoinShuffle++. Waiting for other peers to join ...",
@@ -78,7 +78,7 @@ func (h *Hub) registration(client *Client) bool {
 	client.send <- registration
 
 	h.clients[client] = counter
-	h.peers[counter-1] = &commons.PeersInfo{Id: counter}
+	h.peers[counter-1] = &messages.PeersInfo{Id: counter}
 	h.peers[counter-1].MessageReceived = true
 
 	if counter == maxPeers {
@@ -92,5 +92,5 @@ func (h *Hub) registration(client *Client) bool {
 // initiates DiceMix-Light protocol
 // send all peers ID's
 func (h *Hub) startDicemix() {
-	go broadcastDiceMixResponse(h, commons.S_START_DICEMIX, "Initiate DiceMix Protocol", "")
+	go broadcastDiceMixResponse(h, messages.S_START_DICEMIX, "Initiate DiceMix Protocol", "")
 }

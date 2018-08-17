@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	"../commons"
+	"../messages"
 	"github.com/golang/protobuf/proto"
 )
 
 // handles any request message from peers
 func handleRequest(message []byte, h *Hub) {
-	r := &commons.GenericRequest{}
+	r := &messages.GenericRequest{}
 	h.Lock()
 	defer h.Unlock()
 
@@ -32,32 +32,32 @@ func handleRequest(message []byte, h *Hub) {
 	}
 
 	switch r.Code {
-	case commons.C_KEY_EXCHANGE:
-		request := &commons.KeyExchangeRequest{}
+	case messages.C_KEY_EXCHANGE:
+		request := &messages.KeyExchangeRequest{}
 		err = proto.Unmarshal(message, request)
 		checkError(err)
 
 		handleKeyExchangeRequest(request, h, counter)
-	case commons.C_EXP_DC_VECTOR:
-		request := &commons.DCExpRequest{}
+	case messages.C_EXP_DC_VECTOR:
+		request := &messages.DCExpRequest{}
 		err = proto.Unmarshal(message, request)
 		checkError(err)
 
 		handleDCExponentialRequest(request, h, counter)
-	case commons.C_SIMPLE_DC_VECTOR:
-		request := &commons.DCSimpleRequest{}
+	case messages.C_SIMPLE_DC_VECTOR:
+		request := &messages.DCSimpleRequest{}
 		err = proto.Unmarshal(message, request)
 		checkError(err)
 
 		handleDCSimpleRequest(request, h, counter)
-	case commons.C_TX_CONFIRMATION:
-		request := &commons.ConfirmationRequest{}
+	case messages.C_TX_CONFIRMATION:
+		request := &messages.ConfirmationRequest{}
 		err = proto.Unmarshal(message, request)
 		checkError(err)
 
 		handleConfirmationRequest(request, h, counter)
-	case commons.C_KESK_RESPONSE:
-		request := &commons.InitiaiteKESKResponse{}
+	case messages.C_KESK_RESPONSE:
+		request := &messages.InitiaiteKESKResponse{}
 		err = proto.Unmarshal(message, request)
 		checkError(err)
 
@@ -66,7 +66,7 @@ func handleRequest(message []byte, h *Hub) {
 }
 
 // obtains PublicKeys and NumberOfMsgs sent by peers
-func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub, counter int) {
+func handleKeyExchangeRequest(request *messages.KeyExchangeRequest, h *Hub, counter int) {
 	for i := 0; i < len(h.peers); i++ {
 		if h.peers[i].Id == request.Id {
 			h.peers[i].PublicKey = request.PublicKey
@@ -81,12 +81,12 @@ func handleKeyExchangeRequest(request *commons.KeyExchangeRequest, h *Hub, count
 
 	// if all active peers have submitted their response
 	if counter == len(h.peers) {
-		broadcastDiceMixResponse(h, commons.S_KEY_EXCHANGE, "Key Exchange Response", "")
+		broadcastDiceMixResponse(h, messages.S_KEY_EXCHANGE, "Key Exchange Response", "")
 	}
 }
 
 // obtains DC-EXP vector sent by peers
-func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub, counter int) {
+func handleDCExponentialRequest(request *messages.DCExpRequest, h *Hub, counter int) {
 	for i := 0; i < len(h.peers); i++ {
 		if h.peers[i].Id == request.Id {
 			h.peers[i].DCVector = request.DCExpVector
@@ -100,12 +100,12 @@ func handleDCExponentialRequest(request *commons.DCExpRequest, h *Hub, counter i
 
 	// if all active peers have submitted their response
 	if counter == len(h.peers) {
-		broadcastDCExponentialResponse(h, commons.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
+		broadcastDCExponentialResponse(h, messages.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
 	}
 }
 
 // obtains DC-SIMPLE vector sent by peers
-func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub, counter int) {
+func handleDCSimpleRequest(request *messages.DCSimpleRequest, h *Hub, counter int) {
 	for i := 0; i < len(h.peers); i++ {
 		if h.peers[i].Id == request.Id {
 			h.peers[i].DCSimpleVector = request.DCSimpleVector
@@ -121,14 +121,14 @@ func handleDCSimpleRequest(request *commons.DCSimpleRequest, h *Hub, counter int
 
 	// if all active peers have submitted their response
 	if counter == len(h.peers) {
-		broadcastDiceMixResponse(h, commons.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
+		broadcastDiceMixResponse(h, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
 	}
 }
 
 // obtains confirmations from peers
 // if all peers provided valid confirmations then Dicemix is successful
 // else moved to BLAME stage
-func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub, counter int) {
+func handleConfirmationRequest(request *messages.ConfirmationRequest, h *Hub, counter int) {
 	for i := 0; i < len(h.peers); i++ {
 		if h.peers[i].Id == request.Id {
 			h.peers[i].Messages = request.Messages
@@ -149,7 +149,7 @@ func handleConfirmationRequest(request *commons.ConfirmationRequest, h *Hub, cou
 
 // obtains KESK of peers
 // used in BLAME stage to identify malicious peer
-func handleInitiateKESKResponse(request *commons.InitiaiteKESKResponse, h *Hub, counter int) {
+func handleInitiateKESKResponse(request *messages.InitiaiteKESKResponse, h *Hub, counter int) {
 	for i := 0; i < len(h.peers); i++ {
 		if h.peers[i].Id == request.Id {
 			h.peers[i].PrivateKey = request.PrivateKey
@@ -164,6 +164,7 @@ func handleInitiateKESKResponse(request *commons.InitiaiteKESKResponse, h *Hub, 
 	// if all active peers have submitted their kesk
 	if counter == len(h.peers) {
 		// TODO: START-BLAME()
+		startBlame(h)
 	}
 }
 

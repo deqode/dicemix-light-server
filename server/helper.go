@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"../commons"
+	"../messages"
 	"github.com/jinzhu/copier"
 )
 
@@ -20,30 +20,31 @@ func registerDelayHandler(h *Hub, state int) {
 
 	log.Printf("\nRound has not done %v\n", state)
 	switch state {
-	case commons.C_KEY_EXCHANGE:
+	case messages.C_KEY_EXCHANGE:
 		// if some peers have not submitted their PublicKey
-		broadcastDiceMixResponse(h, commons.S_KEY_EXCHANGE, "Key Exchange Response", "")
-	case commons.C_EXP_DC_VECTOR:
+		broadcastDiceMixResponse(h, messages.S_KEY_EXCHANGE, "Key Exchange Response", "")
+	case messages.C_EXP_DC_VECTOR:
 		// if some peers have not submitted their DC-EXP vector
-		broadcastDCExponentialResponse(h, commons.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
-	case commons.C_SIMPLE_DC_VECTOR:
+		broadcastDCExponentialResponse(h, messages.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
+	case messages.C_SIMPLE_DC_VECTOR:
 		// if some peers have not submitted their DC-SIMPLE vector
-		broadcastDiceMixResponse(h, commons.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
-	case commons.C_TX_CONFIRMATION:
+		broadcastDiceMixResponse(h, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
+	case messages.C_TX_CONFIRMATION:
 		// if some peers have not submitted their CONFIRMATION
 		checkConfirmations(h)
-	case commons.C_KESK_RESPONSE:
+	case messages.C_KESK_RESPONSE:
 		// if some peers have not submitted their KESK
 		// TODO: START-BLAME()
+		startBlame(h)
 	}
 }
 
 // removes offline peers from h.peers
 // returns true if removed any offline peer
 func filterPeers(h *Hub) bool {
-	var allPeers []*commons.PeersInfo
+	var allPeers []*messages.PeersInfo
 	copier.Copy(&allPeers, &h.peers)
-	h.peers = make([]*commons.PeersInfo, 0)
+	h.peers = make([]*messages.PeersInfo, 0)
 
 	for _, peer := range allPeers {
 		// check if client is active and has submitted response
@@ -68,16 +69,16 @@ func filterPeers(h *Hub) bool {
 // predicts next expected RequestCodes from client againts current ResponseCode
 func nextState(responseCode int) int {
 	switch responseCode {
-	case commons.S_START_DICEMIX:
-		return commons.C_KEY_EXCHANGE
-	case commons.S_KEY_EXCHANGE:
-		return commons.C_EXP_DC_VECTOR
-	case commons.S_EXP_DC_VECTOR:
-		return commons.C_SIMPLE_DC_VECTOR
-	case commons.S_SIMPLE_DC_VECTOR:
-		return commons.C_TX_CONFIRMATION
-	case commons.S_KESK_REQUEST:
-		return commons.C_KESK_RESPONSE
+	case messages.S_START_DICEMIX:
+		return messages.C_KEY_EXCHANGE
+	case messages.S_KEY_EXCHANGE:
+		return messages.C_EXP_DC_VECTOR
+	case messages.S_EXP_DC_VECTOR:
+		return messages.C_SIMPLE_DC_VECTOR
+	case messages.S_SIMPLE_DC_VECTOR:
+		return messages.C_TX_CONFIRMATION
+	case messages.S_KESK_REQUEST:
+		return messages.C_KESK_RESPONSE
 	}
 
 	return 0

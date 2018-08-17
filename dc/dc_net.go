@@ -1,8 +1,8 @@
 package dc
 
 import (
-	"../commons"
 	"../field"
+	"../messages"
 	"../solver"
 )
 
@@ -17,7 +17,7 @@ func NewDCNetwork() DC {
 
 // obtains other peers dc[]
 // and generates dc_combined[]
-func (d *dcNet) SolveDCExponential(peers []*commons.PeersInfo) []uint64 {
+func (d *dcNet) SolveDCExponential(peers []*messages.PeersInfo) []uint64 {
 	var i, totalMsgsCount uint32
 	dcCombined := peers[0].DCVector
 

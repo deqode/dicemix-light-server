@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"../commons"
+	"../messages"
 	"github.com/gorilla/websocket"
 )
 
@@ -48,7 +48,7 @@ type Client struct {
 // clients.
 type Hub struct {
 	clients    map[*Client]int32
-	peers      []*commons.PeersInfo
+	peers      []*messages.PeersInfo
 	request    chan []byte
 	register   chan *Client
 	unregister chan *Client

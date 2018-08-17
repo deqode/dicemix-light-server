@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"../commons"
+	"../messages"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -20,14 +20,14 @@ func broadcastDiceMixResponse(h *Hub, state uint32, message string, errMessage s
 
 	if res {
 		// if any P_Excluded go back to KE Stage
-		if state == commons.S_SIMPLE_DC_VECTOR {
+		if state == messages.S_SIMPLE_DC_VECTOR {
 			broadcastKEResponse(h)
 			return
 		}
 	}
 
 	// broadcast response to all active peers
-	peers, err := proto.Marshal(&commons.DiceMixResponse{
+	peers, err := proto.Marshal(&messages.DiceMixResponse{
 		Code:      state,
 		Peers:     h.peers,
 		Timestamp: timestamp(),
@@ -47,14 +47,14 @@ func broadcastDCExponentialResponse(h *Hub, state uint32, message string, errMes
 	res := filterPeers(h)
 
 	if res {
-		if state == commons.S_EXP_DC_VECTOR {
+		if state == messages.S_EXP_DC_VECTOR {
 			broadcastKEResponse(h)
 			return
 		}
 	}
 
 	// broadcast response to all active peers
-	peers, err := proto.Marshal(&commons.DCExpResponse{
+	peers, err := proto.Marshal(&messages.DCExpResponse{
 		Code:      state,
 		Roots:     iDcNet.SolveDCExponential(h.peers),
 		Timestamp: timestamp(),
@@ -68,42 +68,42 @@ func broadcastDCExponentialResponse(h *Hub, state uint32, message string, errMes
 // creates a new run by broadcast KE Exchange Respose to active peers
 // when previous run has been discarded due to some offline peers
 func broadcastKEResponse(h *Hub) {
-	peers, err := proto.Marshal(&commons.DiceMixResponse{
-		Code:      commons.S_KEY_EXCHANGE,
+	peers, err := proto.Marshal(&messages.DiceMixResponse{
+		Code:      messages.S_KEY_EXCHANGE,
 		Peers:     h.peers,
 		Timestamp: timestamp(),
 		Message:   "Key Exchange Response",
 		Err:       "",
 	})
 
-	broadcast(h, peers, err, commons.S_KEY_EXCHANGE)
+	broadcast(h, peers, err, messages.S_KEY_EXCHANGE)
 }
 
 // sent if all peers agrees to continue
 // and have submitted confirmations
 func broadcastTXDone(h *Hub) {
-	peers, err := proto.Marshal(&commons.TXDoneResponse{
-		Code:      commons.S_TX_SUCCESSFUL,
+	peers, err := proto.Marshal(&messages.TXDoneResponse{
+		Code:      messages.S_TX_SUCCESSFUL,
 		Messages:  h.peers[0].Messages,
 		Timestamp: timestamp(),
 		Message:   "DiceMix Successful Response",
 		Err:       "",
 	})
 
-	broadcast(h, peers, err, commons.S_TX_SUCCESSFUL)
+	broadcast(h, peers, err, messages.S_TX_SUCCESSFUL)
 }
 
 // sent if all peers agrees to continue
 // and have submitted confirmations
 func broadcastKESKRequest(h *Hub) {
-	peers, err := proto.Marshal(&commons.InitiaiteKESK{
-		Code:      commons.S_KESK_REQUEST,
+	peers, err := proto.Marshal(&messages.InitiaiteKESK{
+		Code:      messages.S_KESK_REQUEST,
 		Timestamp: timestamp(),
 		Message:   "Blame - send your kesk to identify culprit",
 		Err:       "",
 	})
 
-	broadcast(h, peers, err, commons.S_KESK_REQUEST)
+	broadcast(h, peers, err, messages.S_KESK_REQUEST)
 }
 
 // Broadcasts messages to active peers

@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"../commons"
+	"../messages"
 )
 
 // returns true if (obtained ∈ expected)
@@ -42,7 +42,7 @@ func equals(slice1 [][]byte, slice2 [][]byte) bool {
 
 // to keep track of number of clients which have already
 // submitted the request for corresponding RequestCode (for current run)
-func counter(peers []*commons.PeersInfo) (counter int) {
+func counter(peers []*messages.PeersInfo) (counter int) {
 	for _, peer := range peers {
 		if peer.MessageReceived {
 			counter++
