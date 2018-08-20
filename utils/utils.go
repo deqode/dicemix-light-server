@@ -30,14 +30,8 @@ func EqualBytes(slice1 [][]byte, slice2 [][]byte) bool {
 	}
 
 	for i := 0; i < len(slice1); i++ {
-		if len(slice1[i]) != len(slice2[i]) {
+		if !bytes.Equal(slice1[i], slice2[i]) {
 			return false
-		}
-
-		for j := 0; j < len(slice1[i]); j++ {
-			if slice1[i][j] != slice2[i][j] {
-				return false
-			}
 		}
 	}
 	return true
