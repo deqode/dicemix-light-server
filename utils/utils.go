@@ -21,6 +21,7 @@ func ContainsHash(hash uint64, roots []uint64) bool {
 
 // EqualBytes - compares two slice's of [][]byte for equality
 func EqualBytes(slice1 [][]byte, slice2 [][]byte) bool {
+	// if slice1 is nil then slice2 should also be nil
 	if (slice1 == nil) != (slice2 == nil) {
 		return false
 	}
@@ -29,7 +30,9 @@ func EqualBytes(slice1 [][]byte, slice2 [][]byte) bool {
 		return false
 	}
 
+	// for each []byte of slice1, slice2
 	for i := 0; i < len(slice1); i++ {
+		// if slice1[i] != slice2[i] {return false}
 		if !bytes.Equal(slice1[i], slice2[i]) {
 			return false
 		}
@@ -47,7 +50,6 @@ func RemoveEmpty(messages [][]byte) [][]byte {
 			output = append(output, message)
 		}
 	}
-
 	return output
 }
 
