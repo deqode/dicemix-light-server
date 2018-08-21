@@ -26,6 +26,9 @@ type participant struct {
 }
 
 func startBlame(h *hub, sessionID uint64) {
+	h.Lock()
+	defer h.Unlock()
+
 	var participants = make([]*participant, 0)
 	var roots = iDcNet.SolveDCExponential(h.runs[sessionID].peers)
 

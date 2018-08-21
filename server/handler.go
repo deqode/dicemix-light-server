@@ -9,10 +9,10 @@ import (
 
 // handles any request message from peers
 func handleRequest(message []byte, h *hub) {
-	r := &messages.GenericRequest{}
 	h.Lock()
 	defer h.Unlock()
 
+	r := &messages.GenericRequest{}
 	err := proto.Unmarshal(message, r)
 	checkError(err)
 
@@ -164,7 +164,7 @@ func handleInitiateKESKResponse(request *messages.InitiaiteKESKResponse, h *hub,
 
 	// if all active peers have submitted their kesk
 	if counter == len(h.runs[request.SessionId].peers) {
-		// TODO: START-BLAME()
+		// initiate blame
 		startBlame(h, request.SessionId)
 	}
 }

@@ -21,6 +21,7 @@ type client struct {
 	send chan []byte
 }
 
+// to isolate clients from parallel dicemix executations
 type run struct {
 	sessionID uint64
 	peers     []*messages.PeersInfo
@@ -97,23 +98,10 @@ func (h *hub) registration(client *client) bool {
 	defer h.Unlock()
 	counter := int32(len(h.waitingQueue))
 
-	// if counter >= utils.MinPeers {
-	// 	registration, err := proto.Marshal(&messages.RegisterResponse{
-	// 		Code:      messages.S_JOIN_RESPONSE,
-	// 		Id:        -1,
-	// 		Timestamp: utils.Timestamp(),
-	// 		Message:   "",
-	// 		Err:       "Limit Exceeded. Kindly try after some time",
-	// 	})
-
-	// 	checkError(err)
-	// 	client.send <- registration
-	// 	return false
-	// }
-
+	// generates a random user id for new client
 	userID := utils.RandInt31()
 
-	counter++
+	// send registration response to client
 	registration, err := proto.Marshal(&messages.RegisterResponse{
 		Code:      messages.S_JOIN_RESPONSE,
 		SessionId: 0,
@@ -126,9 +114,15 @@ func (h *hub) registration(client *client) bool {
 	checkError(err)
 	client.send <- registration
 
+	// map client with its userID
 	h.clients[client] = userID
+
+	// store client in waiting queue till |clients| == MinPeers
 	h.waitingQueue = append(h.waitingQueue, userID)
 
+	counter++
+
+	// if min number of clients registers then start Dicemix protocol
 	if counter == utils.MinPeers {
 		// start DiceMix Light process
 		// initRoundUUID(h)
@@ -140,25 +134,26 @@ func (h *hub) registration(client *client) bool {
 // initiates DiceMix-Light protocol
 // send all peers ID's
 func (h *hub) startDicemix() {
-	// generate session id
-	// create run with waitingPeers
-	// clear waitingPeers
-	// br start dicemix response
-
+	// generate session id for clients involved in current dicemix execution
 	sessionID := utils.RandUint64()
+
+	// create new run
 	run := newRun()
 	run.peers = make([]*messages.PeersInfo, utils.MinPeers)
 	run.sessionID = sessionID
 
+	// copy peersInfo from waiting queue to run
 	for i, userID := range h.waitingQueue {
 		run.peers[i] = &messages.PeersInfo{Id: userID}
 		run.peers[i].MessageReceived = true
 	}
 
+	// creates an association between sessionID and run
 	h.runs[sessionID] = run
+
+	// clear the waiting queue
 	h.waitingQueue = make([]int32, 0)
 
-	// fmt.Printf("Run - %v\n\n", h.runs[sessionID])
-
+	// broadcasts - initiates DiceMix-Light protocol
 	go broadcastDiceMixResponse(h, sessionID, messages.S_START_DICEMIX, "Initiate DiceMix Protocol", "")
 }

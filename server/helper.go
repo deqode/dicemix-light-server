@@ -11,14 +11,17 @@ import (
 // handles non responsive peers
 // after responseWait seconds if all peers have not submitted their response
 // then remove them and consider those peers as offline
-// and broadcast mesage to active peers
+// and broadcast message to active peers
 func registerDelayHandler(h *hub, sessionID uint64, state int) {
+	h.Lock()
+	defer h.Unlock()
+
 	if h.runs[sessionID].nextState != state {
 		log.Printf("Round has been done already %v\n", state)
 		return
 	}
-
 	log.Printf("\nRound has not done %v\n", state)
+
 	switch state {
 	case messages.C_KEY_EXCHANGE:
 		// if some peers have not submitted their PublicKey
@@ -34,7 +37,7 @@ func registerDelayHandler(h *hub, sessionID uint64, state int) {
 		checkConfirmations(h, sessionID)
 	case messages.C_KESK_RESPONSE:
 		// if some peers have not submitted their KESK
-		// TODO: START-BLAME()
+		// initiate blame
 		startBlame(h, sessionID)
 	}
 }
