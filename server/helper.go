@@ -1,11 +1,10 @@
 package server
 
 import (
-	"log"
-
 	"../messages"
 	"../utils"
 	"github.com/jinzhu/copier"
+	log "github.com/sirupsen/logrus"
 )
 
 // handles non responsive peers
@@ -17,10 +16,10 @@ func registerDelayHandler(h *hub, sessionID uint64, state int) {
 	defer h.Unlock()
 
 	if h.runs[sessionID].nextState != state {
-		log.Printf("Round has been done already %v\n", state)
+		log.Info("Round has been done already ", state)
 		return
 	}
-	log.Printf("\nRound has not done %v\n", state)
+	log.Info("Round has not done ", state)
 
 	switch state {
 	case messages.C_KEY_EXCHANGE:
@@ -85,7 +84,7 @@ func checkConfirmations(h *hub, sessionID uint64) {
 		if !utils.EqualBytes(peer.Messages, msgs) ||
 			len(peer.Confirmation) == 0 {
 			// Blame stage - INIT KESK
-			log.Printf("BLAME Stage - Peer %v does'nt provide corfirmation", peer.Id)
+			log.Info("BLAME - Peer ", peer.Id, " does'nt provide corfirmation")
 			broadcastKESKRequest(h, sessionID)
 			return
 		}

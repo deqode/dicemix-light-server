@@ -1,10 +1,9 @@
 package server
 
 import (
-	"fmt"
-
 	"../messages"
 	"github.com/golang/protobuf/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 // handles any request message from peers
@@ -74,7 +73,7 @@ func handleKeyExchangeRequest(request *messages.KeyExchangeRequest, h *hub, coun
 			h.runs[request.SessionId].peers[i].NumMsgs = request.NumMsgs
 			h.runs[request.SessionId].peers[i].MessageReceived = true
 
-			fmt.Printf("Recv: handleKeyExchangeRequest PeerId - %v\n", request.Id)
+			log.Info("Recv: handleKeyExchangeRequest PeerId - ", request.Id)
 			counter++
 			break
 		}
@@ -93,7 +92,7 @@ func handleDCExponentialRequest(request *messages.DCExpRequest, h *hub, counter 
 			h.runs[request.SessionId].peers[i].DCVector = request.DCExpVector
 			h.runs[request.SessionId].peers[i].MessageReceived = true
 
-			fmt.Printf("Recv: handleDCExponentialRequest PeerId - %v\n", request.Id)
+			log.Info("Recv: handleDCExponentialRequest PeerId - ", request.Id)
 			counter++
 			break
 		}
@@ -114,7 +113,7 @@ func handleDCSimpleRequest(request *messages.DCSimpleRequest, h *hub, counter in
 			h.runs[request.SessionId].peers[i].MessageReceived = true
 			h.runs[request.SessionId].peers[i].NextPublicKey = request.NextPublicKey
 
-			fmt.Printf("Recv: handleDCSimpleRequest PeerId - %v\n", request.Id)
+			log.Info("Recv: handleDCSimpleRequest PeerId - ", request.Id)
 			counter++
 			break
 		}
@@ -136,7 +135,7 @@ func handleConfirmationRequest(request *messages.ConfirmationRequest, h *hub, co
 			h.runs[request.SessionId].peers[i].Confirmation = request.Confirmation
 			h.runs[request.SessionId].peers[i].MessageReceived = true
 
-			fmt.Printf("Recv: handleConfirmationRequest PeerId - %v\n", request.Id)
+			log.Info("Recv: handleConfirmationRequest PeerId - ", request.Id)
 			counter++
 			break
 		}
@@ -156,7 +155,7 @@ func handleInitiateKESKResponse(request *messages.InitiaiteKESKResponse, h *hub,
 			h.runs[request.SessionId].peers[i].PrivateKey = request.PrivateKey
 			h.runs[request.SessionId].peers[i].MessageReceived = true
 
-			fmt.Printf("Recv: handleInitiateKESKResponse PeerId - %v\n", request.Id)
+			log.Info("Recv: handleInitiateKESKResponse PeerId - ", request.Id)
 			counter++
 			break
 		}

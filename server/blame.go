@@ -1,13 +1,11 @@
 package server
 
 import (
-	"log"
-
 	"../nike"
 	"../rng"
 	"../utils"
-
 	op "github.com/adam-hanna/arrayOperations"
+	log "github.com/sirupsen/logrus"
 )
 
 // Peer - contains information of peers of a Participant
@@ -26,9 +24,6 @@ type participant struct {
 }
 
 func startBlame(h *hub, sessionID uint64) {
-	h.Lock()
-	defer h.Unlock()
-
 	var participants = make([]*participant, 0)
 	var roots = iDcNet.SolveDCExponential(h.runs[sessionID].peers)
 
@@ -126,7 +121,7 @@ func slotCollision(h *hub, sessionID uint64, participants []*participant) {
 			slice, ok := intersection.Interface().([]uint64)
 
 			if !ok {
-				log.Fatalf("Error: Cannot convert reflect.Value to []uint64")
+				log.Fatal("Error: Cannot convert reflect.Value to []uint64")
 			}
 
 			// if |intersection| == 0 {no collision occured between peer1 and peer2}

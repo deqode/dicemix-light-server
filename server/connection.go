@@ -1,15 +1,13 @@
 package server
 
 import (
-	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"../dc"
 	"../utils"
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 // using expose interfaces
@@ -34,7 +32,7 @@ func NewConnection() Server {
 func (s *connection) Register(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Error("Error:- ", err)
 		return
 	}
 	client := &client{hub: s.hub, conn: conn, send: make(chan []byte, 256)}
@@ -62,7 +60,7 @@ func (c *client) readMessage() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				log.Error("Error:- ", err)
 			}
 			break
 		}
@@ -121,7 +119,7 @@ func removePeer(h *hub, id int32) {
 	// if client is offline and not submitted response
 	if client, ok := getClient(h.clients, id); ok {
 		// remove offline peers from clients
-		fmt.Printf("USER UN-REGISTRATION - %v\n", id)
+		log.Info("USER UN-REGISTRATION - ", id)
 		delete(h.clients, client)
 		close(client.send)
 	}
@@ -132,6 +130,5 @@ func removePeer(h *hub, id int32) {
 func checkError(err error) {
 	if err != nil {
 		log.Fatal("Error Occured:", err)
-		os.Exit(1)
 	}
 }

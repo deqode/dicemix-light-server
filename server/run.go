@@ -1,13 +1,13 @@
 package server
 
 import (
-	"log"
 	"sync"
 
 	"../messages"
 	"../utils"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 // Client is a middleman between the websocket connection and the hub.
@@ -74,14 +74,14 @@ func (h *hub) listener() {
 		select {
 		case client := <-h.register:
 			if h.registration(client) {
-				log.Printf("INCOMING C_JOIN_REQUEST - SUCCESSFUL")
+				log.Info("INCOMING C_JOIN_REQUEST - SUCCESSFUL")
 			} else {
-				log.Printf("INCOMING C_JOIN_REQUEST - FAILED")
+				log.Info("INCOMING C_JOIN_REQUEST - FAILED")
 			}
 
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
-				log.Printf("INCOMING - USER UN-REGISTRATION - SUCCESSFUL")
+				log.Info("INCOMING - USER UN-REGISTRATION - ", h.clients[client])
 				delete(h.clients, client)
 				close(client.send)
 			}

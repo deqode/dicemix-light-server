@@ -1,13 +1,13 @@
 package server
 
 import (
-	"log"
 	"os"
 	"time"
 
 	"../messages"
 	"../utils"
 	"github.com/golang/protobuf/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 // Removes offline peers
@@ -127,19 +127,22 @@ func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode u
 	// wait for 1 sec before broadcasting
 	time.Sleep(time.Second)
 
-	for _, peerinfo := range h.runs[sessionID].peers {
-		client, _ := getClient(h.clients, peerinfo.Id)
-
+	for _, peerInfo := range h.runs[sessionID].peers {
+		client, _ := getClient(h.clients, peerInfo.Id)
 		select {
 		case client.send <- message:
 		default:
 			close(client.send)
 			delete(h.clients, client)
 		}
+
+		log.Info("SENT: SessionId - ", sessionID, ", ResponseCode - ", statusCode, ", PeerId - ", peerInfo.Id)
 	}
 
 	// predict next expected RequestCode from client againts current ResponseCode
 	h.runs[sessionID].nextState = nextState(int(statusCode))
+
+	log.Info("SessionId - ", sessionID, ", Expected Next State - ", h.runs[sessionID].nextState)
 
 	// registers a go-routine to handle offline peers
 	go registerWorker(h, sessionID, uint32(h.runs[sessionID].nextState))
