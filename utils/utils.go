@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"math/rand"
 	"time"
 
 	"../field"
@@ -75,4 +76,16 @@ func Reduce(value uint64) uint64 {
 // example - 2018-08-07 12:04:46.456601867 +0000 UTC m=+0.000753626
 func Timestamp() string {
 	return time.Now().String()
+}
+
+// RandUint64 - returns random uint64
+func RandUint64() uint64 {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Uint64()
+}
+
+// RandInt31 -  Int31 returns a non-negative pseudo-random 31-bit integer as an int32
+func RandInt31() int32 {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Int31()
 }

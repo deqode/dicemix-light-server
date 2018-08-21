@@ -16,7 +16,7 @@ import (
 var iDcNet dc.DC
 
 type connection struct {
-	hub *Hub
+	hub *hub
 	Server
 }
 
@@ -25,7 +25,7 @@ func NewConnection() Server {
 	iDcNet = dc.NewDCNetwork()
 
 	hub := newHub()
-	go hub.run()
+	go hub.listener()
 
 	return &connection{hub: hub}
 }
@@ -37,7 +37,7 @@ func (s *connection) Register(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: s.hub, conn: conn, send: make(chan []byte, 256)}
+	client := &client{hub: s.hub, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
@@ -51,7 +51,7 @@ func (s *connection) Register(w http.ResponseWriter, r *http.Request) {
 // The application runs readMessage in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readMessage() {
+func (c *client) readMessage() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
@@ -75,7 +75,7 @@ func (c *Client) readMessage() {
 // A goroutine running writeMessage is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writeMessage() {
+func (c *client) writeMessage() {
 	ticker := time.NewTicker(utils.PingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -117,7 +117,7 @@ func (c *Client) writeMessage() {
 }
 
 // remove a peer from set of all peers
-func removePeer(h *Hub, id int32) {
+func removePeer(h *hub, id int32) {
 	// if client is offline and not submitted response
 	if client, ok := mapkey(h.clients, id); ok {
 		// remove offline peers from clients

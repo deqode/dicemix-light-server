@@ -12,8 +12,8 @@ import (
 // after responseWait seconds if all peers have not submitted their response
 // then remove them and consider those peers as offline
 // and broadcast mesage to active peers
-func registerDelayHandler(h *Hub, state int) {
-	if h.nextState != state {
+func registerDelayHandler(h *hub, sessionID uint64, state int) {
+	if h.runs[sessionID].nextState != state {
 		log.Printf("Round has been done already %v\n", state)
 		return
 	}
@@ -22,35 +22,35 @@ func registerDelayHandler(h *Hub, state int) {
 	switch state {
 	case messages.C_KEY_EXCHANGE:
 		// if some peers have not submitted their PublicKey
-		broadcastDiceMixResponse(h, messages.S_KEY_EXCHANGE, "Key Exchange Response", "")
+		broadcastDiceMixResponse(h, sessionID, messages.S_KEY_EXCHANGE, "Key Exchange Response", "")
 	case messages.C_EXP_DC_VECTOR:
 		// if some peers have not submitted their DC-EXP vector
-		broadcastDCExponentialResponse(h, messages.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
+		broadcastDCExponentialResponse(h, sessionID, messages.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
 	case messages.C_SIMPLE_DC_VECTOR:
 		// if some peers have not submitted their DC-SIMPLE vector
-		broadcastDiceMixResponse(h, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
+		broadcastDiceMixResponse(h, sessionID, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
 	case messages.C_TX_CONFIRMATION:
 		// if some peers have not submitted their CONFIRMATION
-		checkConfirmations(h)
+		checkConfirmations(h, sessionID)
 	case messages.C_KESK_RESPONSE:
 		// if some peers have not submitted their KESK
 		// TODO: START-BLAME()
-		startBlame(h)
+		// startBlame(h, sessionID)
 	}
 }
 
-// removes offline peers from h.peers
+// removes offline peers from h.runs[sessionID].peers
 // returns true if removed any offline peer
-func filterPeers(h *Hub) bool {
+func filterPeers(h *hub, sessionID uint64) bool {
 	var allPeers []*messages.PeersInfo
-	copier.Copy(&allPeers, &h.peers)
-	h.peers = make([]*messages.PeersInfo, 0)
+	copier.Copy(&allPeers, &h.runs[sessionID].peers)
+	h.runs[sessionID].peers = make([]*messages.PeersInfo, 0)
 
 	for _, peer := range allPeers {
 		// check if client is active and has submitted response
 		if peer.MessageReceived {
 			peer.MessageReceived = false
-			h.peers = append(h.peers, peer)
+			h.runs[sessionID].peers = append(h.runs[sessionID].peers, peer)
 			continue
 		}
 
@@ -58,38 +58,38 @@ func filterPeers(h *Hub) bool {
 		removePeer(h, peer.Id)
 	}
 	// removed any offline peer?
-	return len(allPeers) != len(h.peers)
+	return len(allPeers) != len(h.runs[sessionID].peers)
 }
 
 // checks if all peers have submitted a valid confirmation for msgs
 // if yes then DiceMix protocol is considered as successful
 // else moves to BLAME stage
-func checkConfirmations(h *Hub) {
+func checkConfirmations(h *hub, sessionID uint64) {
 	// removes offline peers
 	// returns true if removed any offline peers
-	res := filterPeers(h)
+	res := filterPeers(h, sessionID)
 
 	// if any P_Excluded trace back to KE Stage
 	if res {
-		broadcastKEResponse(h)
+		broadcastKEResponse(h, sessionID)
 		return
 	}
 
-	msgs := h.peers[0].Messages
+	msgs := h.runs[sessionID].peers[0].Messages
 
 	// check if any of peers does'nt agree to continue
-	for _, peer := range h.peers {
+	for _, peer := range h.runs[sessionID].peers {
 		if !utils.EqualBytes(peer.Messages, msgs) ||
 			len(peer.Confirmation) == 0 {
 			// Blame stage - INIT KESK
 			log.Printf("BLAME Stage - Peer %v does'nt provide corfirmation", peer.Id)
-			broadcastKESKRequest(h)
+			broadcastKESKRequest(h, sessionID)
 			return
 		}
 	}
 
 	// DiceMix is successful
-	broadcastTXDone(h)
+	broadcastTXDone(h, sessionID)
 }
 
 // predicts next expected RequestCodes from client againts current ResponseCode
@@ -122,7 +122,19 @@ func counter(peers []*messages.PeersInfo) (counter int) {
 }
 
 // returns key by value from map
-func mapkey(m map[*Client]int32, value int32) (key *Client, ok bool) {
+func mapkey(m map[*client]int32, value int32) (key *client, ok bool) {
+	for k, v := range m {
+		if v == value {
+			key = k
+			ok = true
+			return
+		}
+	}
+	return
+}
+
+// returns key by value from map
+func getClient(m map[*client]int32, value int32) (key *client, ok bool) {
 	for k, v := range m {
 		if v == value {
 			key = k
