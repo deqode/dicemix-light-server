@@ -165,6 +165,6 @@ func handleInitiateKESKResponse(request *messages.InitiaiteKESKResponse, h *hub,
 	// if all active peers have submitted their kesk
 	if counter == len(h.runs[request.SessionId].peers) {
 		// TODO: START-BLAME()
-		// startBlame(h, request.SessionId)
+		startBlame(h, request.SessionId)
 	}
 }

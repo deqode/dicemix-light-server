@@ -119,7 +119,7 @@ func (c *client) writeMessage() {
 // remove a peer from set of all peers
 func removePeer(h *hub, id int32) {
 	// if client is offline and not submitted response
-	if client, ok := mapkey(h.clients, id); ok {
+	if client, ok := getClient(h.clients, id); ok {
 		// remove offline peers from clients
 		fmt.Printf("USER UN-REGISTRATION - %v\n", id)
 		delete(h.clients, client)

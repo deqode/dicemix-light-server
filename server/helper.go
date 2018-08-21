@@ -35,7 +35,7 @@ func registerDelayHandler(h *hub, sessionID uint64, state int) {
 	case messages.C_KESK_RESPONSE:
 		// if some peers have not submitted their KESK
 		// TODO: START-BLAME()
-		// startBlame(h, sessionID)
+		startBlame(h, sessionID)
 	}
 }
 
@@ -121,19 +121,7 @@ func counter(peers []*messages.PeersInfo) (counter int) {
 	return
 }
 
-// returns key by value from map
-func mapkey(m map[*client]int32, value int32) (key *client, ok bool) {
-	for k, v := range m {
-		if v == value {
-			key = k
-			ok = true
-			return
-		}
-	}
-	return
-}
-
-// returns key by value from map
+// returns client connection object from client id
 func getClient(m map[*client]int32, value int32) (key *client, ok bool) {
 	for k, v := range m {
 		if v == value {
