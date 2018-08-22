@@ -1,6 +1,7 @@
 package server
 
 import (
+	"../eddsa"
 	"../messages"
 	"../utils"
 	"github.com/jinzhu/copier"
@@ -15,11 +16,11 @@ func registerDelayHandler(h *hub, sessionID uint64, state int) {
 	h.Lock()
 	defer h.Unlock()
 
+	// if round has been completed successfully
 	if h.runs[sessionID].nextState != state {
-		log.Info("Round has been done already ", state)
 		return
 	}
-	log.Info("Round has not done ", state)
+	log.Info("Round has not done ", state, ", SessionId - ", sessionID)
 
 	switch state {
 	case messages.C_KEY_EXCHANGE:
@@ -133,4 +134,45 @@ func getClient(m map[*client]int32, value int32) (key *client, ok bool) {
 		}
 	}
 	return
+}
+
+// generates ResponseHeader required in any response message
+// broadcasted by server to all active peers
+func responseHeader(code uint32, sessionID uint64, message, err string) *messages.ResponseHeader {
+	return &messages.ResponseHeader{
+		Code:      code,
+		SessionId: sessionID,
+		Timestamp: utils.Timestamp(),
+		Message:   message,
+		Err:       err,
+	}
+}
+
+// checks if peer incorrectly signed message or not
+// if incorrectly signed discard the message.
+func validateMessage(message *messages.SignedRequest, h *hub, id int32, sessionID uint64) bool {
+	// id session id is valid
+	if _, ok := h.runs[sessionID]; !ok {
+		return false
+	}
+
+	// get long term public key of peer to verify signed message
+	// if publickey found verify message
+	if publicKey, found := publicKey(h.runs[sessionID].peers, id); found {
+		edDSA := eddsa.NewCurveED25519()
+		return edDSA.Verify(publicKey, message.RequestData, message.Signature)
+	}
+	return false
+}
+
+// return long term public key of peer with specified id
+// if found -> returns publickey, true
+// else -> returns nil, false
+func publicKey(peers []*messages.PeersInfo, id int32) ([]byte, bool) {
+	for _, peer := range peers {
+		if peer.Id == id && len(peer.LTPublicKey) > 0 {
+			return peer.LTPublicKey, true
+		}
+	}
+	return nil, false
 }

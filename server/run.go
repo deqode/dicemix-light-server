@@ -29,12 +29,17 @@ type run struct {
 	sync.Mutex
 }
 
+type waitingClient struct {
+	id        int32
+	publicKey []byte
+}
+
 // hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type hub struct {
 	clients      map[*client]int32
 	runs         map[uint64]*run
-	waitingQueue []int32
+	waitingQueue []*waitingClient
 	request      chan []byte
 	register     chan *client
 	unregister   chan *client
@@ -50,7 +55,7 @@ func newHub() *hub {
 	return &hub{
 		clients:      make(map[*client]int32),
 		runs:         make(map[uint64]*run),
-		waitingQueue: make([]int32, 0),
+		waitingQueue: make([]*waitingClient, 0),
 		request:      make(chan []byte),
 		register:     make(chan *client),
 		unregister:   make(chan *client),
@@ -96,19 +101,15 @@ func (h *hub) listener() {
 func (h *hub) registration(client *client) bool {
 	h.Lock()
 	defer h.Unlock()
-	counter := int32(len(h.waitingQueue))
 
 	// generates a random user id for new client
 	userID := utils.RandInt31()
 
 	// send registration response to client
+	header := responseHeader(messages.S_JOIN_RESPONSE, 0, "Welcome to CoinShuffle++. Waiting for other peers to join ...", "")
 	registration, err := proto.Marshal(&messages.RegisterResponse{
-		Code:      messages.S_JOIN_RESPONSE,
-		SessionId: 0,
-		Id:        userID,
-		Timestamp: utils.Timestamp(),
-		Message:   "Welcome to CoinShuffle++. Waiting for other peers to join ...",
-		Err:       "",
+		Header: header,
+		Id:     userID,
 	})
 
 	checkError(err)
@@ -117,17 +118,8 @@ func (h *hub) registration(client *client) bool {
 	// map client with its userID
 	h.clients[client] = userID
 
-	// store client in waiting queue till |clients| == MinPeers
-	h.waitingQueue = append(h.waitingQueue, userID)
-
-	counter++
-
-	// if min number of clients registers then start Dicemix protocol
-	if counter == utils.MinPeers {
-		// start DiceMix Light process
-		// initRoundUUID(h)
-		h.startDicemix()
-	}
+	// store client in waiting queue
+	h.waitingQueue = append(h.waitingQueue, &waitingClient{id: userID})
 	return true
 }
 
@@ -142,17 +134,35 @@ func (h *hub) startDicemix() {
 	run.peers = make([]*messages.PeersInfo, utils.MinPeers)
 	run.sessionID = sessionID
 
-	// copy peersInfo from waiting queue to run
-	for i, userID := range h.waitingQueue {
-		run.peers[i] = &messages.PeersInfo{Id: userID}
+	// maintains list of clients which have registered
+	// but have not sent their long term public key yet
+	waitingClients := make([]*waitingClient, 0)
+	i := 0
+
+	// copy peersInfo from waiting queue to start dicemix run
+	for _, waitingClient := range h.waitingQueue {
+		if len(waitingClient.publicKey) == 0 {
+			// if client has not sent long term public key yet
+			// add him to waitingClients
+			waitingClients = append(waitingClients, waitingClient)
+			continue
+		}
+
+		// clients those have sent their long term public key
+		// add them to newly created dicemix run
+		run.peers[i] = &messages.PeersInfo{Id: waitingClient.id}
+		run.peers[i].LTPublicKey = waitingClient.publicKey
 		run.peers[i].MessageReceived = true
+		i++
 	}
 
 	// creates an association between sessionID and run
 	h.runs[sessionID] = run
 
-	// clear the waiting queue
-	h.waitingQueue = make([]int32, 0)
+	// replace waitingQueue with waitingClients
+	// i.e. store only those clients in waitingQueue which
+	// have not sent their long term public key yet
+	h.waitingQueue = waitingClients
 
 	// broadcasts - initiates DiceMix-Light protocol
 	go broadcastDiceMixResponse(h, sessionID, messages.S_START_DICEMIX, "Initiate DiceMix Protocol", "")

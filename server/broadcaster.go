@@ -1,7 +1,6 @@
 package server
 
 import (
-	"os"
 	"time"
 
 	"../messages"
@@ -28,13 +27,10 @@ func broadcastDiceMixResponse(h *hub, sessionID uint64, state uint32, message st
 	}
 
 	// broadcast response to all active peers
+	header := responseHeader(state, sessionID, message, errMessage)
 	peers, err := proto.Marshal(&messages.DiceMixResponse{
-		Code:      state,
-		SessionId: sessionID,
-		Peers:     h.runs[sessionID].peers,
-		Timestamp: utils.Timestamp(),
-		Message:   message,
-		Err:       errMessage,
+		Header: header,
+		Peers:  h.runs[sessionID].peers,
 	})
 
 	broadcast(h, sessionID, peers, err, state)
@@ -56,13 +52,10 @@ func broadcastDCExponentialResponse(h *hub, sessionID uint64, state uint32, mess
 	}
 
 	// broadcast response to all active peers
+	header := responseHeader(state, sessionID, message, errMessage)
 	peers, err := proto.Marshal(&messages.DCExpResponse{
-		Code:      state,
-		SessionId: sessionID,
-		Roots:     iDcNet.SolveDCExponential(h.runs[sessionID].peers),
-		Timestamp: utils.Timestamp(),
-		Message:   message,
-		Err:       errMessage,
+		Header: header,
+		Roots:  iDcNet.SolveDCExponential(h.runs[sessionID].peers),
 	})
 
 	broadcast(h, sessionID, peers, err, state)
@@ -71,13 +64,11 @@ func broadcastDCExponentialResponse(h *hub, sessionID uint64, state uint32, mess
 // creates a new run by broadcast KE Exchange Respose to active peers
 // when previous run has been discarded due to some offline peers
 func broadcastKEResponse(h *hub, sessionID uint64) {
+	// broadcast response to all active peers
+	header := responseHeader(messages.S_KEY_EXCHANGE, sessionID, "Key Exchange Response", "")
 	peers, err := proto.Marshal(&messages.DiceMixResponse{
-		Code:      messages.S_KEY_EXCHANGE,
-		SessionId: sessionID,
-		Peers:     h.runs[sessionID].peers,
-		Timestamp: utils.Timestamp(),
-		Message:   "Key Exchange Response",
-		Err:       "",
+		Header: header,
+		Peers:  h.runs[sessionID].peers,
 	})
 
 	broadcast(h, sessionID, peers, err, messages.S_KEY_EXCHANGE)
@@ -86,13 +77,11 @@ func broadcastKEResponse(h *hub, sessionID uint64) {
 // sent if all peers agrees to continue
 // and have submitted confirmations
 func broadcastTXDone(h *hub, sessionID uint64) {
+	// broadcast response to all active peers
+	header := responseHeader(messages.S_TX_SUCCESSFUL, sessionID, "DiceMix Successful Response", "")
 	peers, err := proto.Marshal(&messages.TXDoneResponse{
-		Code:      messages.S_TX_SUCCESSFUL,
-		SessionId: sessionID,
-		Messages:  h.runs[sessionID].peers[0].Messages,
-		Timestamp: utils.Timestamp(),
-		Message:   "DiceMix Successful Response",
-		Err:       "",
+		Header:   header,
+		Messages: h.runs[sessionID].peers[0].Messages,
 	})
 
 	broadcast(h, sessionID, peers, err, messages.S_TX_SUCCESSFUL)
@@ -101,12 +90,10 @@ func broadcastTXDone(h *hub, sessionID uint64) {
 // sent if all peers agrees to continue
 // and have submitted confirmations
 func broadcastKESKRequest(h *hub, sessionID uint64) {
+	// broadcast response to all active peers
+	header := responseHeader(messages.S_KESK_REQUEST, sessionID, "Blame - send your kesk to identify culprit", "")
 	peers, err := proto.Marshal(&messages.InitiaiteKESK{
-		Code:      messages.S_KESK_REQUEST,
-		SessionId: sessionID,
-		Timestamp: utils.Timestamp(),
-		Message:   "Blame - send your kesk to identify culprit",
-		Err:       "",
+		Header: header,
 	})
 
 	broadcast(h, sessionID, peers, err, messages.S_KESK_REQUEST)
@@ -120,8 +107,8 @@ func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode u
 
 	// minimum peer check
 	if len(h.runs[sessionID].peers) < 2 {
-		log.Fatal("MinPeers: Less than two peers")
-		os.Exit(1)
+		log.Warn("MinPeers: Less than two peers. SessionId - ", sessionID, ", Peers - ", h.runs[sessionID].peers)
+		return
 	}
 
 	// wait for 1 sec before broadcasting
