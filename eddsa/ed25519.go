@@ -14,7 +14,7 @@ func NewCurveED25519() EdDSA {
 }
 
 // Verify reports whether sig is a valid signature of message by publicKey. It
-// will panic if len(publicKey) is not PublicKeySize = 64.
+// will panic if len(publicKey) is not PublicKeySize = 32	.
 func (e *curveED25519) Verify(publicKey, message, signature []byte) bool {
 	return ed25519.Verify(publicKey, message, signature)
 }
