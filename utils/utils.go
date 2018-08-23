@@ -41,8 +41,29 @@ func EqualBytes(slice1 [][]byte, slice2 [][]byte) bool {
 	return true
 }
 
-// RemoveEmpty - removes empty byte slices from messages
-func RemoveEmpty(messages [][]byte) [][]byte {
+// CheckEqualUint64 - compares two slice's of []uint64 for equality
+func CheckEqualUint64(slice1 []uint64, slice2 []uint64) bool {
+	// if slice1 is nil then slice2 should also be nil
+	if (slice1 == nil) != (slice2 == nil) {
+		return false
+	}
+
+	if len(slice1) != len(slice2) {
+		return false
+	}
+
+	// for each []byte of slice1, slice2
+	for i := 0; i < len(slice1); i++ {
+		// if slice1[i] != slice2[i] {return false}
+		if slice1[i] != slice2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// RemoveEmptyBytes - removes empty byte slices from messages
+func RemoveEmptyBytes(messages [][]byte) [][]byte {
 	emptyByte := make([]byte, 20)
 	output := make([][]byte, 0)
 
@@ -88,4 +109,9 @@ func RandUint64() uint64 {
 func RandInt31() int32 {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Int31()
+}
+
+// Power parameter sdhould be within uint64 range
+func Power(value, t uint64) uint64 {
+	return uint64(field.NewField(field.UInt64(value)).Mul(field.NewField(field.UInt64(t))).Fp)
 }

@@ -18,7 +18,7 @@ const (
 	PingPeriod = (PongWait * 9) / 10
 
 	// MinPeers - number of peers required to start DiceMix protocol
-	MinPeers = 3
+	MinPeers = 4
 
 	// ResponseWait - Time to wait for response from peers.
 	ResponseWait = 5
