@@ -126,9 +126,10 @@ func removePeer(h *hub, id int32) {
 }
 
 // checks for any potential errors
-// exists program if one found
-func checkError(err error) {
+func checkError(err error) bool {
 	if err != nil {
-		log.Fatal("Error Occured:", err)
+		log.Error("Error Occured:", err)
+		return true
 	}
+	return false
 }

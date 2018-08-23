@@ -14,13 +14,15 @@ func handleRequest(message []byte, h *hub) {
 
 	// decode protobuf sent by peer via network
 	signedRequest := &messages.SignedRequest{}
-	err := proto.Unmarshal(message, signedRequest)
-	checkError(err)
+	if err := proto.Unmarshal(message, signedRequest); checkError(err) {
+		return
+	}
 
 	// used to obtain info about peerId, code and sessionID from signedRequest
 	r := &messages.GenericRequest{}
-	err = proto.Unmarshal(signedRequest.RequestData, r)
-	checkError(err)
+	if err := proto.Unmarshal(signedRequest.RequestData, r); checkError(err) {
+		return
+	}
 
 	// if client has sent his long term public key
 	if r.Header.Code == messages.C_LTPK_REQUEST {
@@ -54,42 +56,48 @@ func handleRequest(message []byte, h *hub) {
 	switch r.Header.Code {
 	case messages.C_KEY_EXCHANGE:
 		request := &messages.KeyExchangeRequest{}
-		err = proto.Unmarshal(signedRequest.RequestData, request)
-		checkError(err)
-
+		if err := proto.Unmarshal(signedRequest.RequestData, request); checkError(err) {
+			return
+		}
 		handleKeyExchangeRequest(request, h, counter)
+
 	case messages.C_EXP_DC_VECTOR:
 		request := &messages.DCExpRequest{}
-		err = proto.Unmarshal(signedRequest.RequestData, request)
-		checkError(err)
-
+		if err := proto.Unmarshal(signedRequest.RequestData, request); checkError(err) {
+			return
+		}
 		handleDCExponentialRequest(request, h, counter)
+
 	case messages.C_SIMPLE_DC_VECTOR:
 		request := &messages.DCSimpleRequest{}
-		err = proto.Unmarshal(signedRequest.RequestData, request)
-		checkError(err)
-
+		if err := proto.Unmarshal(signedRequest.RequestData, request); checkError(err) {
+			return
+		}
 		handleDCSimpleRequest(request, h, counter)
+
 	case messages.C_TX_CONFIRMATION:
 		request := &messages.ConfirmationRequest{}
-		err = proto.Unmarshal(signedRequest.RequestData, request)
-		checkError(err)
-
+		if err := proto.Unmarshal(signedRequest.RequestData, request); checkError(err) {
+			return
+		}
 		handleConfirmationRequest(request, h, counter)
+
 	case messages.C_KESK_RESPONSE:
 		request := &messages.InitiaiteKESKResponse{}
-		err = proto.Unmarshal(signedRequest.RequestData, request)
-		checkError(err)
-
+		if err := proto.Unmarshal(signedRequest.RequestData, request); checkError(err) {
+			return
+		}
 		handleInitiateKESKResponse(request, h, counter)
+
 	}
 }
 
 // obtains PublicKeys and NumberOfMsgs sent by peers
 func handleLTSKRequest(message []byte, h *hub) {
 	request := &messages.LtpkExchangeRequest{}
-	err := proto.Unmarshal(message, request)
-	checkError(err)
+	if err := proto.Unmarshal(message, request); checkError(err) {
+		return
+	}
 
 	counter := 0
 	for i := 0; i < len(h.waitingQueue); i++ {

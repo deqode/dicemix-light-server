@@ -103,7 +103,9 @@ func broadcastKESKRequest(h *hub, sessionID uint64) {
 // sets lastRoundUUID to roundUUID of current Response
 // Registers a go routine to handled non responsive peers
 func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode uint32) {
-	checkError(err)
+	if checkError(err) {
+		return
+	}
 
 	// minimum peer check
 	if len(h.runs[sessionID].peers) < 2 {

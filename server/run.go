@@ -112,7 +112,10 @@ func (h *hub) registration(client *client) bool {
 		Id:     userID,
 	})
 
-	checkError(err)
+	if checkError(err) {
+		return false
+	}
+
 	client.send <- registration
 
 	// map client with its userID
