@@ -2,6 +2,7 @@ package rng
 
 import (
 	"crypto/cipher"
+	"encoding/binary"
 	"encoding/hex"
 
 	"github.com/codahale/chacha20"
@@ -37,6 +38,11 @@ func NewRng(seed []byte) DiceMixRng {
 	dicemix.chachaExpRng = getPRG(dicemix.chachaStream, 8)
 
 	return dicemix
+}
+
+// GetFieldElement - converts []byte of len 8 to uint64
+func (d *DiceMixRng) GetFieldElement() uint64 {
+	return uint64(binary.LittleEndian.Uint64(d.chachaExpRng))
 }
 
 // GetBytes - returns 20 byte[]
