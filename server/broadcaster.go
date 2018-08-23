@@ -109,7 +109,7 @@ func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode u
 
 	// minimum peer check
 	if len(h.runs[sessionID].peers) < 2 {
-		log.Warn("MinPeers: Less than two peers. SessionId - ", sessionID, ", Peers - ", h.runs[sessionID].peers)
+		log.Warn("MinPeers: Less than two peers. SessionId - ", sessionID, ", Peers - ", len(h.runs[sessionID].peers))
 		return
 	}
 

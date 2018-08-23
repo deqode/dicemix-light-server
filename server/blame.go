@@ -1,6 +1,7 @@
 package server
 
 import (
+	"../field"
 	"../nike"
 	"../rng"
 	"../utils"
@@ -31,7 +32,9 @@ func startBlame(h *hub, sessionID uint64) {
 	participants = initBlame(h, sessionID, participants, roots)
 
 	// identify and exclude peers involved in slot collision
-	slotCollision(h, sessionID, participants)
+	if collisions, found := slotCollision(h, sessionID, participants); found {
+		eliminatePeers(collisions, h, sessionID)
+	}
 
 	// removes malicious and offline peers
 	// i.e. those peers who have sent unexpected protocol messages
@@ -65,6 +68,7 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 		participant.Peers = make([]*peerInfo, 0)
 
 		privateKey := peer.PrivateKey
+		totalMsgsCount := int(peer.NumMsgs)
 
 		// for every peer active till confirmation
 		// irrespective of he has sent his kesk or not
@@ -77,6 +81,7 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 			var peer = &peerInfo{}
 			peer.ID = otherPeer.Id
 			peer.SharedKey, peer.Dicemix = nike.DeriveSharedKeys(privateKey, otherPeer.PublicKey)
+			totalMsgsCount += int(otherPeer.NumMsgs)
 
 			// append peer to peers of participant
 			participant.Peers = append(participant.Peers, peer)
@@ -85,11 +90,22 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 		// recover messages - obtains messages of participant from his DC-Simple broadcast
 		participant.Messages = recoverMessages(participant.Peers, participant.Messages)
 
+		// number of msg sent by client and number of msgs he promised to send are not equal
+		// then remove client
+		if uint32(len(participant.Messages)) != h.runs[sessionID].peers[i].NumMsgs {
+			h.runs[sessionID].peers[i].MessageReceived = false
+			continue
+		}
+
+		// recover message hashes - obtains hashes sent by participant from his DC-Exp broadcast
 		// verify messages checks if peer has sent
 		// unexpected message and corresponding hash
-		hashes, ok := verifyMessagesHash(participant.Messages, roots)
+		hashes, ok := verifyMessageHashes(participant.ID, participant.Peers, participant.Messages, totalMsgsCount, peer.DCVector)
+
 		participant.MessagesHash = hashes
 
+		// if message and message hashes do not correspond
+		// then remove client
 		if !ok {
 			// set peer.MessageReceived to false
 			// so it would be removed by filterPeers()
@@ -107,7 +123,7 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 // to identify peers who are involved in slot collision
 // Exclude peers who are involved in a slot collision,
 // i.e., a message hash collision
-func slotCollision(h *hub, sessionID uint64, participants []*participant) {
+func slotCollision(h *hub, sessionID uint64, participants []*participant) ([]int32, bool) {
 	// store id's of peers involved in slot collision
 	var collisions = make([]int32, 0)
 
@@ -137,6 +153,11 @@ func slotCollision(h *hub, sessionID uint64, participants []*participant) {
 		}
 	}
 
+	return collisions, len(collisions) != 0
+}
+
+// removes peers involed in slot collision
+func eliminatePeers(collisions []int32, h *hub, sessionID uint64) {
 	// remove every peer involved in slot collision
 	for i := 0; i < len(collisions); i++ {
 		for j := 0; j < len(h.runs[sessionID].peers); j++ {
@@ -156,7 +177,7 @@ func slotCollision(h *hub, sessionID uint64, participants []*participant) {
 // by cancelling out randomness
 func recoverMessages(peers []*peerInfo, messages [][]byte) [][]byte {
 	messages = decodeMessages(peers, messages)
-	messages = utils.RemoveEmpty(messages)
+	messages = utils.RemoveEmptyBytes(messages)
 	return messages
 }
 
@@ -169,24 +190,53 @@ func decodeMessages(peers []*peerInfo, messages [][]byte) [][]byte {
 			utils.XorBytes(messages[j], messages[j], peers[i].Dicemix.GetBytes(20))
 		}
 	}
-
 	return messages
 }
 
 // checks if message sent by peer in DC-Simple
 // and Hash sent by him in DC-EXP are related or not
+// todo so first generates dc-exp vector from mesages
 // returns hashes of messages from roots (if valid)
 // bool - roots contains valid hashes of messages or not
-func verifyMessagesHash(messages [][]byte, roots []uint64) ([]uint64, bool) {
-	var hashes = make([]uint64, 0)
-	for _, message := range messages {
-		messageHash := utils.Reduce(utils.ShortHash(utils.BytesToBase58String(message)))
-		hashes = append(hashes, messageHash)
-		if !utils.ContainsHash(messageHash, roots) {
-			return nil, false
+func verifyMessageHashes(myID int32, peers []*peerInfo, messages [][]byte, totalMsgsCount int, peerDC []uint64) ([]uint64, bool) {
+	messageHashes := make([]uint64, len(messages))
+	dc := make([]uint64, totalMsgsCount)
+	peersCount := len(peers)
+
+	// generates power sums of message_hashes
+	// my_dc[i] := my_dc[i] (+) (my_msg_hashes[j] ** (i + 1))
+	for j := 0; j < len(messages); j++ {
+		// generates 64 bit hash of my_message[j]
+		messageHashes[j] = utils.ShortHash(utils.BytesToBase58String(messages[j]))
+		var pow uint64 = 1
+		for i := 0; i < totalMsgsCount; i++ {
+			var op1 = field.NewField(field.UInt64(dc[i]))
+			pow = utils.Power(uint64(messageHashes[j]), pow)
+			var op2 = field.NewField(field.UInt64(pow))
+
+			dc[i] = uint64(op1.Add(op2).Fp)
 		}
 	}
-	return hashes, true
+
+	// encode power sums
+	// my_dc[i] := my_dc[i] (+) (sgn(my_id - p.id) (*) p.dicemix.get_field_element())
+	for j := 0; j < peersCount; j++ {
+		for i := 0; i < totalMsgsCount; i++ {
+			var op1 = field.NewField(field.UInt64(dc[i]))
+			var op2 = field.NewField(field.UInt64(peers[j].Dicemix.GetFieldElement()))
+			if myID < peers[j].ID {
+				op2 = op2.Neg()
+			}
+			dc[i] = uint64(op1.Add(op2).Fp)
+		}
+	}
+
+	// check if peer sent correct dc-exp vector
+	// by checking generated DC vector and received DC vector for equality
+	if utils.CheckEqualUint64(dc, peerDC) {
+		return messageHashes, true
+	}
+	return nil, false
 }
 
 // rotate keys to be used in next run
