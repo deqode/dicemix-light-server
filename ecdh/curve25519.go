@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	ecdh "github.com/wsddn/go-ecdh"
+	"golang.org/x/crypto/curve25519"
 )
 
 type curve25519ECDH struct {
@@ -16,6 +17,19 @@ type curve25519ECDH struct {
 // elliptical curve.
 func NewCurve25519ECDH() ECDH {
 	return &curve25519ECDH{}
+}
+
+// Generate PublicKey from privateKey
+func (e *curve25519ECDH) PublicKey(privateKey []byte) ([]byte, bool) {
+	if len(privateKey) != 32 {
+		return nil, false
+	}
+
+	var priv, pub [32]byte
+	copy(priv[:], privateKey)
+	curve25519.ScalarBaseMult(&pub, &priv)
+
+	return pub[:], true
 }
 
 // Unmarshal converts byte[] to crypto.PublicKey
