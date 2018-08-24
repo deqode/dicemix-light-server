@@ -141,8 +141,13 @@ func handleKeyExchangeRequest(request *messages.KeyExchangeRequest, h *hub, coun
 // obtains DC-EXP vector sent by peers
 func handleDCExponentialRequest(request *messages.DCExpRequest, h *hub, counter int) {
 	sessionID := request.Header.SessionId
+	msgCount := int(totalMessageCount(h.runs[sessionID].peers))
 	for i := 0; i < len(h.runs[sessionID].peers); i++ {
 		if h.runs[sessionID].peers[i].Id == request.Header.Id {
+			if len(request.DCExpVector) != msgCount {
+				return
+			}
+
 			h.runs[sessionID].peers[i].DCVector = request.DCExpVector
 			h.runs[sessionID].peers[i].MessageReceived = true
 
@@ -161,8 +166,13 @@ func handleDCExponentialRequest(request *messages.DCExpRequest, h *hub, counter 
 // obtains DC-SIMPLE vector sent by peers
 func handleDCSimpleRequest(request *messages.DCSimpleRequest, h *hub, counter int) {
 	sessionID := request.Header.SessionId
+	msgCount := int(totalMessageCount(h.runs[sessionID].peers))
 	for i := 0; i < len(h.runs[sessionID].peers); i++ {
 		if h.runs[sessionID].peers[i].Id == request.Header.Id {
+			if len(request.DCSimpleVector) != msgCount {
+				return
+			}
+
 			h.runs[sessionID].peers[i].DCSimpleVector = request.DCSimpleVector
 			h.runs[sessionID].peers[i].OK = request.MyOk
 			h.runs[sessionID].peers[i].MessageReceived = true

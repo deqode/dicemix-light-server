@@ -1,6 +1,9 @@
 package server
 
 import (
+	"bytes"
+
+	"../ecdh"
 	"../field"
 	"../nike"
 	"../rng"
@@ -25,9 +28,10 @@ type participant struct {
 
 func startBlame(h *hub, sessionID uint64) {
 	var participants = make([]*participant, 0)
+	var roots = iDcNet.SolveDCExponential(h.runs[sessionID].peers)
 
 	// identifies honest peers (who have expected protocol messages)
-	participants = initBlame(h, sessionID, participants)
+	participants = initBlame(h, sessionID, participants, roots)
 
 	// identify and exclude peers involved in slot collision
 	if collisions, found := slotCollision(h, sessionID, participants); found {
@@ -44,7 +48,7 @@ func startBlame(h *hub, sessionID uint64) {
 
 // identifies honest peers (who have expected protocol messages)
 // Exclude peers in next run who have sent unexpected protocol messages
-func initBlame(h *hub, sessionID uint64, participants []*participant) []*participant {
+func initBlame(h *hub, sessionID uint64, participants []*participant, roots []uint64) []*participant {
 	nike := nike.NewNike()
 
 	for i := 0; i < len(h.runs[sessionID].peers); i++ {
@@ -56,9 +60,14 @@ func initBlame(h *hub, sessionID uint64, participants []*participant) []*partici
 			continue
 		}
 
-		// TODO: check if peer has sent correct private key
+		// check if peer has sent correct private key
 		// validate(privateKey, publicKey) key pairs
 		// if sent wrong keys exclude clients
+		ecdh := ecdh.NewCurve25519ECDH()
+		if pub, ok := ecdh.PublicKey(peer.PrivateKey); ok && !bytes.Equal(pub, peer.PublicKey) {
+			h.runs[sessionID].peers[i].MessageReceived = false
+			continue
+		}
 
 		// create participant object to store info of a valid
 		// participant of blame (i.e. whcih has sent his KESK)
@@ -103,8 +112,10 @@ func initBlame(h *hub, sessionID uint64, participants []*participant) []*partici
 		participant.MessagesHash = hashes
 
 		// if message and message hashes do not correspond
+		// check validity of ok sent by client in DC-SIMPLE round
+		// case: if user has sent actual dc-simple-vector and ok=false
 		// then remove client
-		if !ok {
+		if !ok || (!peer.OK && utils.IsSubset(participant.MessagesHash, roots)) {
 			// set peer.MessageReceived to false
 			// so it would be removed by filterPeers()
 			h.runs[sessionID].peers[i].MessageReceived = false
@@ -135,7 +146,8 @@ func slotCollision(h *hub, sessionID uint64, participants []*participant) ([]int
 			slice, ok := intersection.Interface().([]uint64)
 
 			if !ok {
-				log.Fatal("Error: Cannot convert reflect.Value to []uint64")
+				log.Warn("Error: Cannot convert reflect.Value to []uint64")
+				return nil, false
 			}
 
 			// if |intersection| == 0 {no collision occured between peer1 and peer2}
@@ -143,8 +155,8 @@ func slotCollision(h *hub, sessionID uint64, participants []*participant) ([]int
 				continue
 			}
 
-			// collsion occured between peer1 and peer2
-			// add them to collisions slice
+			// collision occured between peer1 and peer2
+			// add them to collisions slice i.e.
 			// P_exclude := P_exclude U {p1, p2}
 			collisions = append(collisions, p1.ID)
 			collisions = append(collisions, p2.ID)
