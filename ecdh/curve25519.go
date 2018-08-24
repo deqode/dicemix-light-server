@@ -1,6 +1,7 @@
 package ecdh
 
 import (
+	"bytes"
 	"crypto"
 	"sync"
 
@@ -20,31 +21,31 @@ func NewCurve25519ECDH() ECDH {
 }
 
 // Generate PublicKey from privateKey
-func (e *curve25519ECDH) PublicKey(privateKey []byte) ([]byte, bool) {
+func (e *curve25519ECDH) ValidateKeypair(privateKey, publicKey []byte) bool {
 	if len(privateKey) != 32 {
-		return nil, false
+		return false
 	}
 
 	var priv, pub [32]byte
 	copy(priv[:], privateKey)
 	curve25519.ScalarBaseMult(&pub, &priv)
 
-	return pub[:], true
+	return bytes.Equal(pub[:], publicKey)
 }
 
 // Unmarshal converts byte[] to crypto.PublicKey
-func (e *curve25519ECDH) Unmarshal(data []byte) (crypto.PublicKey, bool) {
+func (e *curve25519ECDH) Unmarshal(publicKey []byte) (crypto.PublicKey, bool) {
 	var ecdhCurve = ecdh.NewCurve25519ECDH()
-	return ecdhCurve.Unmarshal(data)
+	return ecdhCurve.Unmarshal(publicKey)
 }
 
 // Unmarshal converts byte[] to crypto.PrivateKey
-func (e *curve25519ECDH) UnmarshalSK(data []byte) (crypto.PrivateKey, bool) {
+func (e *curve25519ECDH) UnmarshalSK(privateKey []byte) (crypto.PrivateKey, bool) {
 	var pri [32]byte
-	if len(data) != 32 {
+	if len(privateKey) != 32 {
 		return nil, false
 	}
-	copy(pri[:], data)
+	copy(pri[:], privateKey)
 	return &pri, true
 }
 

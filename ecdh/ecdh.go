@@ -6,8 +6,8 @@ import (
 
 // ECDH - The main interface ECDH.
 type ECDH interface {
-	PublicKey([]byte) ([]byte, bool)
-	Unmarshal([]byte) (crypto.PublicKey, bool)
-	UnmarshalSK([]byte) (crypto.PrivateKey, bool)
+	ValidateKeypair(privateKey, publicKey []byte) bool
+	Unmarshal(publicKey []byte) (crypto.PublicKey, bool)
+	UnmarshalSK(privateKey []byte) (crypto.PrivateKey, bool)
 	GenerateSharedSecret(crypto.PrivateKey, crypto.PublicKey) ([]byte, error)
 }
