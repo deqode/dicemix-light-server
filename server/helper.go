@@ -70,15 +70,16 @@ func filterPeers(h *hub, sessionID uint64) bool {
 func checkConfirmations(h *hub, sessionID uint64) {
 	// removes offline peers
 	// returns true if removed any offline peers
-	res := filterPeers(h, sessionID)
-
-	// if any P_Excluded trace back to KE Stage
-	if res {
+	if res := filterPeers(h, sessionID); res {
+		// if any P_Excluded trace back to KE Stage
 		broadcastKEResponse(h, sessionID)
 		return
 	}
 
 	msgs := h.runs[sessionID].peers[0].Messages
+
+	// TODO: [change] as we consider that if peer doesnt want to send his confirmation and want to go to blame stage
+	// sends |confirmation| = 0, which would be changed in future
 
 	// check if any of peers does'nt agree to continue
 	for _, peer := range h.runs[sessionID].peers {
@@ -113,41 +114,6 @@ func nextState(responseCode int) int {
 	return 0
 }
 
-// to keep track of number of clients which have already
-// submitted the request for corresponding RequestCode (for current run)
-func counter(peers []*messages.PeersInfo) (counter int) {
-	for _, peer := range peers {
-		if peer.MessageReceived {
-			counter++
-		}
-	}
-	return
-}
-
-// returns client connection object from client id
-func getClient(m map[*client]int32, value int32) (key *client, ok bool) {
-	for k, v := range m {
-		if v == value {
-			key = k
-			ok = true
-			return
-		}
-	}
-	return
-}
-
-// generates ResponseHeader required in any response message
-// broadcasted by server to all active peers
-func responseHeader(code uint32, sessionID uint64, message, err string) *messages.ResponseHeader {
-	return &messages.ResponseHeader{
-		Code:      code,
-		SessionId: sessionID,
-		Timestamp: utils.Timestamp(),
-		Message:   message,
-		Err:       err,
-	}
-}
-
 // checks if peer incorrectly signed message or not
 // if incorrectly signed discard the message.
 func validateMessage(message *messages.SignedRequest, h *hub, id int32, sessionID uint64) bool {
@@ -172,6 +138,48 @@ func publicKey(peers []*messages.PeersInfo, id int32) ([]byte, bool) {
 	for _, peer := range peers {
 		if peer.Id == id && len(peer.LTPublicKey) > 0 {
 			return peer.LTPublicKey, true
+		}
+	}
+	return nil, false
+}
+
+// generates ResponseHeader required in any response message
+// broadcasted by server to all active peers
+func responseHeader(code uint32, sessionID uint64, message, err string) *messages.ResponseHeader {
+	return &messages.ResponseHeader{
+		Code:      code,
+		SessionId: sessionID,
+		Timestamp: utils.Timestamp(),
+		Message:   message,
+		Err:       err,
+	}
+}
+
+// to keep track of number of clients which have already
+// submitted the request for corresponding RequestCode (for current run)
+func counter(peers []*messages.PeersInfo) (counter int) {
+	for _, peer := range peers {
+		if peer.MessageReceived {
+			counter++
+		}
+	}
+	return
+}
+
+// returns total number of messages
+func totalMessageCount(peers []*messages.PeersInfo) uint32 {
+	var count uint32
+	for _, peer := range peers {
+		count += peer.NumMsgs
+	}
+	return count
+}
+
+// returns client connection object from client id
+func getClient(m map[*client]int32, data int32) (*client, bool) {
+	for key, value := range m {
+		if data == value {
+			return key, true
 		}
 	}
 	return nil, false
