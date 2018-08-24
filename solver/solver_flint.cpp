@@ -17,6 +17,8 @@ using namespace flint;
 #define RET_INVALID 1
 #define RET_INTERNAL_ERROR 100
 #define RET_INPUT_ERROR 101
+#define MAX_MESSAGES_COUNT 1000
+#define MIN_MESSAGES_COUNT 2
 
 int solve_impl(vector<fmpzxx> &messages, const fmpzxx &p,  const vector<fmpzxx> &sums)
 {
@@ -35,7 +37,7 @@ int solve_impl(vector<fmpzxx> &messages, const fmpzxx &p,  const vector<fmpzxx> 
   }
 #endif
 
-  if (n < 2)
+  if (n < MIN_MESSAGES_COUNT)
   {
 #ifdef DEBUG
     cout << "Input vector too short." << endl;
@@ -44,7 +46,7 @@ int solve_impl(vector<fmpzxx> &messages, const fmpzxx &p,  const vector<fmpzxx> 
   }
 
   // Basic sanity check to avoid weird inputs
-  if (n > 1000)
+  if (n > MAX_MESSAGES_COUNT)
   {
 #ifdef DEBUG
     cout << "You probably do not want an input vector of more than 1000 elements. " << endl;
