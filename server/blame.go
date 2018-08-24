@@ -20,16 +20,14 @@ type peerInfo struct {
 type participant struct {
 	ID           int32
 	Peers        []*peerInfo
-	Messages     [][]byte
 	MessagesHash []uint64
 }
 
 func startBlame(h *hub, sessionID uint64) {
 	var participants = make([]*participant, 0)
-	var roots = iDcNet.SolveDCExponential(h.runs[sessionID].peers)
 
 	// identifies honest peers (who have expected protocol messages)
-	participants = initBlame(h, sessionID, participants, roots)
+	participants = initBlame(h, sessionID, participants)
 
 	// identify and exclude peers involved in slot collision
 	if collisions, found := slotCollision(h, sessionID, participants); found {
@@ -44,15 +42,13 @@ func startBlame(h *hub, sessionID uint64) {
 	broadcastKEResponse(h, sessionID)
 }
 
-// Exclude peers who have sent unexpected protocol messages
-func initBlame(h *hub, sessionID uint64, participants []*participant, roots []uint64) []*participant {
+// identifies honest peers (who have expected protocol messages)
+// Exclude peers in next run who have sent unexpected protocol messages
+func initBlame(h *hub, sessionID uint64, participants []*participant) []*participant {
 	nike := nike.NewNike()
 
 	for i := 0; i < len(h.runs[sessionID].peers); i++ {
 		peer := h.runs[sessionID].peers[i]
-
-		// TODO: check if peer has sent correct private key
-		// validate(privateKey, publicKey) key pairs
 
 		// do not perform following actions for
 		// those peers whcih have not sent their KESK
@@ -60,11 +56,14 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 			continue
 		}
 
+		// TODO: check if peer has sent correct private key
+		// validate(privateKey, publicKey) key pairs
+		// if sent wrong keys exclude clients
+
 		// create participant object to store info of a valid
 		// participant of blame (i.e. whcih has sent his KESK)
 		var participant = &participant{}
 		participant.ID = peer.Id
-		participant.Messages = peer.DCSimpleVector
 		participant.Peers = make([]*peerInfo, 0)
 
 		privateKey := peer.PrivateKey
@@ -88,11 +87,11 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 		}
 
 		// recover messages - obtains messages of participant from his DC-Simple broadcast
-		participant.Messages = recoverMessages(participant.Peers, participant.Messages)
+		messages := recoverMessages(participant.Peers, peer.DCSimpleVector)
 
 		// number of msg sent by client and number of msgs he promised to send are not equal
 		// then remove client
-		if uint32(len(participant.Messages)) != h.runs[sessionID].peers[i].NumMsgs {
+		if uint32(len(messages)) != peer.NumMsgs {
 			h.runs[sessionID].peers[i].MessageReceived = false
 			continue
 		}
@@ -100,8 +99,7 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 		// recover message hashes - obtains hashes sent by participant from his DC-Exp broadcast
 		// verify messages checks if peer has sent
 		// unexpected message and corresponding hash
-		hashes, ok := verifyMessageHashes(participant.ID, participant.Peers, participant.Messages, totalMsgsCount, peer.DCVector)
-
+		hashes, ok := verifyMessageHashes(participant.ID, participant.Peers, messages, totalMsgsCount, peer.DCVector)
 		participant.MessagesHash = hashes
 
 		// if message and message hashes do not correspond
@@ -210,11 +208,8 @@ func verifyMessageHashes(myID int32, peers []*peerInfo, messages [][]byte, total
 		messageHashes[j] = utils.ShortHash(utils.BytesToBase58String(messages[j]))
 		var pow uint64 = 1
 		for i := 0; i < totalMsgsCount; i++ {
-			var op1 = field.NewField(field.UInt64(dc[i]))
-			pow = utils.Power(uint64(messageHashes[j]), pow)
-			var op2 = field.NewField(field.UInt64(pow))
-
-			dc[i] = uint64(op1.Add(op2).Fp)
+			pow = utils.Power(messageHashes[j], pow)
+			dc[i] = field.NewField(dc[i]).Add(field.NewField(pow)).Value()
 		}
 	}
 
@@ -222,12 +217,11 @@ func verifyMessageHashes(myID int32, peers []*peerInfo, messages [][]byte, total
 	// my_dc[i] := my_dc[i] (+) (sgn(my_id - p.id) (*) p.dicemix.get_field_element())
 	for j := 0; j < peersCount; j++ {
 		for i := 0; i < totalMsgsCount; i++ {
-			var op1 = field.NewField(field.UInt64(dc[i]))
-			var op2 = field.NewField(field.UInt64(peers[j].Dicemix.GetFieldElement()))
+			var op2 = field.NewField(peers[j].Dicemix.GetFieldElement())
 			if myID < peers[j].ID {
 				op2 = op2.Neg()
 			}
-			dc[i] = uint64(op1.Add(op2).Fp)
+			dc[i] = field.NewField(dc[i]).Add(op2).Value()
 		}
 	}
 

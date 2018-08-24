@@ -31,9 +31,7 @@ func (d *dcNet) SolveDCExponential(peers []*messages.PeersInfo) []uint64 {
 	// generates DC-COMBINED vector
 	for j := 1; j < len(peers); j++ {
 		for i = 0; i < totalMsgsCount; i++ {
-			var op1 = field.NewField(field.UInt64(dcCombined[i]))
-			var op2 = field.NewField(field.UInt64(peers[j].DCVector[i]))
-			dcCombined[i] = uint64(op1.Add(op2).Fp)
+			dcCombined[i] = field.NewField(dcCombined[i]).Add(field.NewField(peers[j].DCVector[i])).Value()
 		}
 	}
 

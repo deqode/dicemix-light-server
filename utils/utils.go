@@ -89,7 +89,7 @@ func ShortHash(message string) uint64 {
 
 // Reduce - reduces value into field range
 func Reduce(value uint64) uint64 {
-	return uint64(field.NewField(field.UInt64(value)).Fp)
+	return field.NewField(value).Value()
 }
 
 // Timestamp - to identify time of occurence of an event
@@ -113,5 +113,5 @@ func RandInt31() int32 {
 
 // Power parameter sdhould be within uint64 range
 func Power(value, t uint64) uint64 {
-	return uint64(field.NewField(field.UInt64(value)).Mul(field.NewField(field.UInt64(t))).Fp)
+	return field.NewField(value).Mul(field.NewField(t)).Value()
 }
