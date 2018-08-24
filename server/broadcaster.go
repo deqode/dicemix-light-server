@@ -110,6 +110,8 @@ func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode u
 	// minimum peer check
 	if len(h.runs[sessionID].peers) < 2 {
 		log.Warn("MinPeers: Less than two peers. SessionId - ", sessionID, ", Peers - ", len(h.runs[sessionID].peers))
+		// terminate run
+		terminate(h, sessionID)
 		return
 	}
 
@@ -117,15 +119,23 @@ func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode u
 	time.Sleep(time.Second)
 
 	for _, peerInfo := range h.runs[sessionID].peers {
-		client, _ := getClient(h.clients, peerInfo.Id)
-		select {
-		case client.send <- message:
-		default:
-			close(client.send)
-			delete(h.clients, client)
+		if client, ok := getClient(h.clients, peerInfo.Id); ok {
+			select {
+			case client.send <- message:
+			default:
+				close(client.send)
+				delete(h.clients, client)
+			}
 		}
 
 		log.Info("SENT: SessionId - ", sessionID, ", ResponseCode - ", statusCode, ", PeerId - ", peerInfo.Id)
+	}
+
+	if statusCode == messages.S_TX_SUCCESSFUL {
+		// run is successful
+		// successfull termination
+		terminate(h, sessionID)
+		return
 	}
 
 	// predict next expected RequestCode from client againts current ResponseCode

@@ -114,6 +114,22 @@ func (c *client) writeMessage() {
 	}
 }
 
+// removs all peers from run and terminates run
+func terminate(h *hub, sessionID uint64) {
+	// if session exists
+	if _, ok := h.runs[sessionID]; !ok {
+		return
+	}
+
+	// remove all peers from run
+	for _, peer := range h.runs[sessionID].peers {
+		removePeer(h, peer.Id)
+	}
+
+	// remove run info
+	delete(h.runs, sessionID)
+}
+
 // remove a peer from set of all peers
 func removePeer(h *hub, id int32) {
 	// if client is offline and not submitted response

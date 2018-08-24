@@ -16,6 +16,11 @@ func registerDelayHandler(h *hub, sessionID uint64, state int) {
 	h.Lock()
 	defer h.Unlock()
 
+	// if session exists
+	if _, ok := h.runs[sessionID]; !ok {
+		return
+	}
+
 	// if round has been completed successfully
 	if h.runs[sessionID].nextState != state {
 		return

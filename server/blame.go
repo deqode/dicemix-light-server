@@ -1,8 +1,6 @@
 package server
 
 import (
-	"bytes"
-
 	"../ecdh"
 	"../field"
 	"../nike"
@@ -64,7 +62,7 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 		// validate(privateKey, publicKey) key pairs
 		// if sent wrong keys exclude clients
 		ecdh := ecdh.NewCurve25519ECDH()
-		if pub, ok := ecdh.PublicKey(peer.PrivateKey); ok && !bytes.Equal(pub, peer.PublicKey) {
+		if ok := ecdh.ValidateKeypair(peer.PrivateKey, peer.PublicKey); !ok {
 			h.runs[sessionID].peers[i].MessageReceived = false
 			continue
 		}

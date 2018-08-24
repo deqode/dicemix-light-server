@@ -24,7 +24,7 @@ func handleRequest(message []byte, h *hub) {
 		return
 	}
 
-	// if client has sent his long term public key
+	// if client has sent his long term public key in message
 	if r.Header.Code == messages.C_LTPK_REQUEST {
 		handleLTSKRequest(signedRequest.RequestData, h)
 		return
@@ -99,6 +99,7 @@ func handleLTSKRequest(message []byte, h *hub) {
 		return
 	}
 
+	// TODO: check if public key is valid or not
 	counter := 0
 	for i := 0; i < len(h.waitingQueue); i++ {
 		if len(h.waitingQueue[i].publicKey) > 0 {
@@ -122,6 +123,7 @@ func handleKeyExchangeRequest(request *messages.KeyExchangeRequest, h *hub, coun
 	sessionID := request.Header.SessionId
 	for i := 0; i < len(h.runs[sessionID].peers); i++ {
 		if h.runs[sessionID].peers[i].Id == request.Header.Id {
+			// TODO: check if public key is valid or not
 			h.runs[sessionID].peers[i].PublicKey = request.PublicKey
 			h.runs[sessionID].peers[i].NumMsgs = request.NumMsgs
 			h.runs[sessionID].peers[i].MessageReceived = true
@@ -195,8 +197,13 @@ func handleDCSimpleRequest(request *messages.DCSimpleRequest, h *hub, counter in
 // else moved to BLAME stage
 func handleConfirmationRequest(request *messages.ConfirmationRequest, h *hub, counter int) {
 	sessionID := request.Header.SessionId
+	msgCount := int(totalMessageCount(h.runs[sessionID].peers))
 	for i := 0; i < len(h.runs[sessionID].peers); i++ {
 		if h.runs[sessionID].peers[i].Id == request.Header.Id {
+			if len(request.Messages) != msgCount {
+				return
+			}
+
 			h.runs[sessionID].peers[i].Messages = request.Messages
 			h.runs[sessionID].peers[i].Confirmation = request.Confirmation
 			h.runs[sessionID].peers[i].MessageReceived = true
