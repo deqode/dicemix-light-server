@@ -3,8 +3,9 @@ package server
 import (
 	"sync"
 
-	"../messages"
-	"../utils"
+	"dicemix_server/messages"
+	"dicemix_server/utils"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"

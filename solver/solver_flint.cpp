@@ -49,7 +49,7 @@ int solve_impl(vector<fmpzxx> &messages, const fmpzxx &p,  const vector<fmpzxx> 
   if (n > MAX_MESSAGES_COUNT)
   {
 #ifdef DEBUG
-    cout << "You probably do not want an input vector of more than 1000 elements. " << endl;
+    cout << "You probably do not want an input vector of more than " << MAX_MESSAGES_COUNT << " elements. " << endl;
 #endif
     return RET_INPUT_ERROR;
   }

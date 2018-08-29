@@ -4,11 +4,12 @@ import (
 	"flag"
 	"net/http"
 
-	"./server"
+	"dicemix_server/server"
+
 	log "github.com/sirupsen/logrus"
 )
 
-var addr = flag.String("addr", ":8080", "http service address")
+var addr = flag.String("addr", ":8081", "http service address")
 
 func main() {
 	// setup logger

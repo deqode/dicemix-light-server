@@ -5,12 +5,13 @@ import (
 	"math/rand"
 	"time"
 
-	"../field"
+	"dicemix_server/field"
+
 	base58 "github.com/jbenet/go-base58"
 	"github.com/shomali11/util/xhashes"
 )
 
-// Subset returns true if the first array is completely
+// IsSubset returns true if the first array is completely
 // contained in the second array. There must be at least
 // the same number of duplicate values in second as there
 // are in first.

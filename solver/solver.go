@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"unsafe"
 
-	"../field"
+	"dicemix_server/field"
 )
 
 // Solve -- solves the generated DC-COMBINED[] to obtain MESSAGES HASHES (if no error exists)

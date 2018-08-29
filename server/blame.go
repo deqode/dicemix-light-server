@@ -1,11 +1,12 @@
 package server
 
 import (
-	"../ecdh"
-	"../field"
-	"../nike"
-	"../rng"
-	"../utils"
+	"dicemix_server/ecdh"
+	"dicemix_server/field"
+	"dicemix_server/nike"
+	"dicemix_server/rng"
+	"dicemix_server/utils"
+
 	op "github.com/adam-hanna/arrayOperations"
 	log "github.com/sirupsen/logrus"
 )

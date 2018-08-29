@@ -1,9 +1,9 @@
 package dc
 
 import (
-	"../field"
-	"../messages"
-	"../solver"
+	"dicemix_server/field"
+	"dicemix_server/messages"
+	"dicemix_server/solver"
 )
 
 type dcNet struct {

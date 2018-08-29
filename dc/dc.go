@@ -1,7 +1,7 @@
 package dc
 
 import (
-	"../messages"
+	"dicemix_server/messages"
 )
 
 // DC - The main interface DC_NET.

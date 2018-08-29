@@ -1,9 +1,10 @@
 package server
 
 import (
-	"../eddsa"
-	"../messages"
-	"../utils"
+	"dicemix_server/eddsa"
+	"dicemix_server/messages"
+	"dicemix_server/utils"
+
 	"github.com/jinzhu/copier"
 	log "github.com/sirupsen/logrus"
 )
