@@ -90,12 +90,15 @@ func checkConfirmations(h *hub, sessionID uint64) {
 	// check if any of peers does'nt agree to continue
 	for _, peer := range h.runs[sessionID].peers {
 		if !utils.EqualBytes(peer.Messages, msgs) ||
-			len(peer.Confirmation) == 0 {
+			!peer.Confirmation {
 			// Blame stage - INIT KESK
-			log.Info("BLAME - Peer ", peer.Id, " does'nt provide corfirmation")
+			log.Info("BLAME - Peer ", peer.Id, " does'nt provide correct corfirmation")
 			broadcastKESKRequest(h, sessionID)
 			return
 		}
+
+		log.Info("CONFIRMATION - Peer ", peer.Id, " sent correct confirmation")
+
 	}
 
 	// DiceMix is successful

@@ -209,7 +209,7 @@ func handleConfirmationRequest(request *messages.ConfirmationRequest, h *hub, co
 			h.runs[sessionID].peers[i].Confirmation = request.Confirmation
 			h.runs[sessionID].peers[i].MessageReceived = true
 
-			log.Info("Recv: handleConfirmationRequest PeerId - ", request.Header.Id)
+			log.Info("Recv: Confirmation Request PeerId - ", request.Header.Id)
 			counter++
 			break
 		}

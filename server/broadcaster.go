@@ -136,6 +136,7 @@ func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode u
 		// run is successful
 		// successfull termination
 		terminate(h, sessionID)
+		log.Info("RUN Successful ", sessionID)
 		return
 	}
 
