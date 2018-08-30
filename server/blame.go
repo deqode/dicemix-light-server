@@ -1,11 +1,11 @@
 package server
 
 import (
-	"dicemix_server/ecdh"
-	"dicemix_server/field"
-	"dicemix_server/nike"
-	"dicemix_server/rng"
-	"dicemix_server/utils"
+	"github.com/manjeet-thadani/dicemix-server/ecdh"
+	"github.com/manjeet-thadani/dicemix-server/field"
+	"github.com/manjeet-thadani/dicemix-server/nike"
+	"github.com/manjeet-thadani/dicemix-server/rng"
+	"github.com/manjeet-thadani/dicemix-server/utils"
 
 	op "github.com/adam-hanna/arrayOperations"
 	log "github.com/sirupsen/logrus"

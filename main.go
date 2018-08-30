@@ -4,12 +4,12 @@ import (
 	"flag"
 	"net/http"
 
-	"dicemix_server/server"
+	"github.com/manjeet-thadani/dicemix-server/server"
 
 	log "github.com/sirupsen/logrus"
 )
 
-var addr = flag.String("addr", ":8081", "http service address")
+var addr = flag.String("addr", ":8082", "http service address")
 
 func main() {
 	// setup logger
@@ -19,8 +19,10 @@ func main() {
 	log.SetFormatter(formatter)
 
 	flag.Parse()
+
 	connection := server.NewConnection()
 
+	log.Info("Server Started")
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		connection.Register(w, r)
 	})

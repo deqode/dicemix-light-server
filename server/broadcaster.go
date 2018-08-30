@@ -3,8 +3,8 @@ package server
 import (
 	"time"
 
-	"dicemix_server/messages"
-	"dicemix_server/utils"
+	"github.com/manjeet-thadani/dicemix-server/messages"
+	"github.com/manjeet-thadani/dicemix-server/utils"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"

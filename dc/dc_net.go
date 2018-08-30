@@ -1,9 +1,9 @@
 package dc
 
 import (
-	"dicemix_server/field"
-	"dicemix_server/messages"
-	"dicemix_server/solver"
+	"github.com/manjeet-thadani/dicemix-server/field"
+	"github.com/manjeet-thadani/dicemix-server/messages"
+	"github.com/manjeet-thadani/dicemix-server/solver"
 )
 
 type dcNet struct {
