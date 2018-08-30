@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/manjeet-thadani/dicemix-server/eddsa"
+	"github.com/manjeet-thadani/dicemix-server/ecdsa"
 	"github.com/manjeet-thadani/dicemix-server/messages"
 	"github.com/manjeet-thadani/dicemix-server/utils"
 
@@ -131,8 +131,8 @@ func validateMessage(message *messages.SignedRequest, h *hub, id int32, sessionI
 	// get long term public key of peer to verify signed message
 	// if publickey found verify message
 	if publicKey, found := publicKey(h.runs[sessionID].peers, id); found {
-		edDSA := eddsa.NewCurveED25519()
-		return edDSA.Verify(publicKey, message.RequestData, message.Signature)
+		ecdsa := ecdsa.NewCurveECDSA()
+		return ecdsa.Verify(publicKey, message.RequestData, message.Signature)
 	}
 	return false
 }
