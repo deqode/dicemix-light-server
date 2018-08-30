@@ -189,7 +189,7 @@ func handleDCSimpleRequest(request *messages.DCSimpleRequest, h *hub, counter in
 
 	// if all active peers have submitted their response
 	if counter == len(h.runs[sessionID].peers) {
-		broadcastDiceMixResponse(h, sessionID, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
+		broadcastDCSimpleResponse(h, sessionID, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
 	}
 }
 

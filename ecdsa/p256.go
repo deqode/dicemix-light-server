@@ -17,11 +17,13 @@ func NewCurveECDSA() ECDSA {
 
 // Verify reports whether sig is a valid signature of message by publicKey.
 func (e *curveP256) Verify(publicKey, message, signature []byte) bool {
+	// obtain r, s *big.Int from []byte signature
 	r := new(big.Int)
 	s := new(big.Int)
 	r.SetBytes(signature[:len(signature)/2])
 	s.SetBytes(signature[len(signature)/2:])
 
+	// verify signature
 	return pkVerify(message, publicKey, r, s)
 }
 

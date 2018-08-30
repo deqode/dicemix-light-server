@@ -37,6 +37,33 @@ func broadcastDiceMixResponse(h *hub, sessionID uint64, state uint32, message st
 	broadcast(h, sessionID, peers, err, state)
 }
 
+func broadcastDCSimpleResponse(h *hub, sessionID uint64, state uint32, message string, errMessage string) {
+	// removes offline peers
+	// returns true if removed any offline peers
+	res := filterPeers(h, sessionID)
+
+	if res {
+		// if any P_Excluded go back to KE Stage
+		if state == messages.S_SIMPLE_DC_VECTOR {
+			broadcastKEResponse(h, sessionID)
+			return
+		}
+	}
+
+	count := int(totalMessageCount(h.runs[sessionID].peers))
+	allMessages := iDcNet.ResolveDCNet(h.runs[sessionID].peers, count)
+
+	// broadcast response to all active peers
+	header := responseHeader(state, sessionID, message, errMessage)
+	peers, err := proto.Marshal(&messages.DCSimpleResponse{
+		Header:   header,
+		Messages: allMessages,
+		Peers:    h.runs[sessionID].peers,
+	})
+
+	broadcast(h, sessionID, peers, err, state)
+}
+
 // Removes offline peers and broadcasts message to active peers
 // Broadcasts responses for -
 // S_EXP_DC_VECTOR

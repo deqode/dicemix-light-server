@@ -37,7 +37,7 @@ func registerDelayHandler(h *hub, sessionID uint64, state int) {
 		broadcastDCExponentialResponse(h, sessionID, messages.S_EXP_DC_VECTOR, "Solved DC Exponential Roots", "")
 	case messages.C_SIMPLE_DC_VECTOR:
 		// if some peers have not submitted their DC-SIMPLE vector
-		broadcastDiceMixResponse(h, sessionID, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
+		broadcastDCSimpleResponse(h, sessionID, messages.S_SIMPLE_DC_VECTOR, "DC Simple Response", "")
 	case messages.C_TX_CONFIRMATION:
 		// if some peers have not submitted their CONFIRMATION
 		checkConfirmations(h, sessionID)

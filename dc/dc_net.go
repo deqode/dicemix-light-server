@@ -4,6 +4,7 @@ import (
 	"github.com/manjeet-thadani/dicemix-server/field"
 	"github.com/manjeet-thadani/dicemix-server/messages"
 	"github.com/manjeet-thadani/dicemix-server/solver"
+	"github.com/manjeet-thadani/dicemix-server/utils"
 )
 
 type dcNet struct {
@@ -40,4 +41,26 @@ func (d *dcNet) SolveDCExponential(peers []*messages.PeersInfo) []uint64 {
 	// Basic sanity check to avoid weird inputs
 	// check - solver/solver_flint.cpp (46)
 	return solver.Solve(dcCombined, int(totalMsgsCount))
+}
+
+// Resolve the DC-net
+func (d *dcNet) ResolveDCNet(peers []*messages.PeersInfo, totalMsgsCount int) [][]byte {
+	var allMessages = make([][]byte, len(peers[0].DCSimpleVector))
+
+	// copies DCSimpleVector
+	for i, vector := range peers[0].DCSimpleVector {
+		allMessages[i] = make([]byte, len(vector))
+		copy(allMessages[i], vector)
+	}
+
+	// decode messages
+	for i := 1; i < len(peers); i++ {
+		for j := 0; j < totalMsgsCount; j++ {
+			// decodes messages from slots by cancelling out randomness introduced in DC-Simple
+			// xor operation - all_messages[j] = dc_simple_vector[j] + <randomness for chacha20>
+			utils.XorBytes(allMessages[j], allMessages[j], peers[i].DCSimpleVector[j])
+
+		}
+	}
+	return allMessages
 }
