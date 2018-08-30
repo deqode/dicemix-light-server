@@ -1,9 +1,8 @@
 package ecdsa
 
 import (
-	"crypto/ecdsa"
-	"crypto/x509"
-	"math/big"
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
 type curveP256 struct {
@@ -16,27 +15,14 @@ func NewCurveECDSA() ECDSA {
 }
 
 // Verify reports whether sig is a valid signature of message by publicKey.
-func (e *curveP256) Verify(publicKey, message, signature []byte) bool {
-	// obtain r, s *big.Int from []byte signature
-	r := new(big.Int)
-	s := new(big.Int)
-	r.SetBytes(signature[:len(signature)/2])
-	s.SetBytes(signature[len(signature)/2:])
-
-	// verify signature
-	return pkVerify(message, publicKey, r, s)
-}
-
-func pkVerify(message []byte, publicKeyBytes []byte, r *big.Int, s *big.Int) (result bool) {
-	publicKey, err := x509.ParsePKIXPublicKey(publicKeyBytes)
+func (e *curveP256) Verify(publicKeyBytes, message, signatureBytes []byte) bool {
+	publicKey, err := btcec.ParsePubKey(publicKeyBytes, btcec.S256())
+	signature, err := btcec.ParseDERSignature(signatureBytes, btcec.S256())
+	messageHash := chainhash.DoubleHashB(message)
 	if err != nil {
 		return false
 	}
 
-	switch publicKey := publicKey.(type) {
-	case *ecdsa.PublicKey:
-		return ecdsa.Verify(publicKey, message, r, s)
-	default:
-		return false
-	}
+	// Verify the signature for the message using the public key.
+	return signature.Verify(messageHash, publicKey)
 }
