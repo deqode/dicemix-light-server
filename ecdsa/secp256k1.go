@@ -19,6 +19,7 @@ func (e *curveP256) Verify(publicKeyBytes, message, signatureBytes []byte) bool 
 	publicKey, err := btcec.ParsePubKey(publicKeyBytes, btcec.S256())
 	signature, err := btcec.ParseDERSignature(signatureBytes, btcec.S256())
 	messageHash := chainhash.DoubleHashB(message)
+
 	if err != nil {
 		return false
 	}

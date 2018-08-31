@@ -35,7 +35,7 @@ func IsSubset(first, second []uint64) bool {
 }
 
 // EqualBytes - compares two slice's of [][]byte for equality
-func EqualBytes(slice1 [][]byte, slice2 [][]byte) bool {
+func EqualBytes(slice1, slice2 [][]byte) bool {
 	// if slice1 is nil then slice2 should also be nil
 	if (slice1 == nil) != (slice2 == nil) {
 		return false
@@ -56,7 +56,7 @@ func EqualBytes(slice1 [][]byte, slice2 [][]byte) bool {
 }
 
 // CheckEqualUint64 - compares two slice's of []uint64 for equality
-func CheckEqualUint64(slice1 []uint64, slice2 []uint64) bool {
+func CheckEqualUint64(slice1, slice2 []uint64) bool {
 	// if slice1 is nil then slice2 should also be nil
 	if (slice1 == nil) != (slice2 == nil) {
 		return false
