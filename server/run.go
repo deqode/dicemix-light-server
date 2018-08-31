@@ -25,6 +25,7 @@ type client struct {
 // to isolate clients from parallel dicemix executations
 type run struct {
 	sessionID uint64
+	run       int
 	peers     []*messages.PeersInfo
 	nextState int
 	sync.Mutex
@@ -66,6 +67,7 @@ func newHub() *hub {
 func newRun() *run {
 	return &run{
 		sessionID: 0,
+		run:       -1,
 		peers:     make([]*messages.PeersInfo, utils.MinPeers),
 		nextState: 0,
 	}
@@ -137,6 +139,7 @@ func (h *hub) startDicemix() {
 	run := newRun()
 	run.peers = make([]*messages.PeersInfo, utils.MinPeers)
 	run.sessionID = sessionID
+	run.run = 0
 
 	// maintains list of clients which have registered
 	// but have not sent their long term public key yet

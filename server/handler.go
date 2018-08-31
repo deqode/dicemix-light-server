@@ -125,6 +125,10 @@ func handleKeyExchangeRequest(request *messages.KeyExchangeRequest, h *hub, coun
 	for i := 0; i < len(h.runs[sessionID].peers); i++ {
 		if h.runs[sessionID].peers[i].Id == request.Header.Id {
 			// TODO: check if public key is valid or not
+			if request.NumMsgs < 1 {
+				return
+			}
+
 			h.runs[sessionID].peers[i].PublicKey = request.PublicKey
 			h.runs[sessionID].peers[i].NumMsgs = request.NumMsgs
 			h.runs[sessionID].peers[i].MessageReceived = true

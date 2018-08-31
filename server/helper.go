@@ -13,7 +13,7 @@ import (
 // after responseWait seconds if all peers have not submitted their response
 // then remove them and consider those peers as offline
 // and broadcast message to active peers
-func registerDelayHandler(h *hub, sessionID uint64, state int) {
+func registerDelayHandler(h *hub, sessionID uint64, state int, run int) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -23,9 +23,10 @@ func registerDelayHandler(h *hub, sessionID uint64, state int) {
 	}
 
 	// if round has been completed successfully
-	if h.runs[sessionID].nextState != state {
+	if h.runs[sessionID].nextState != state || h.runs[sessionID].run != run {
 		return
 	}
+
 	log.Info("Round has not done ", state, ", SessionId - ", sessionID)
 
 	switch state {
@@ -78,6 +79,7 @@ func checkConfirmations(h *hub, sessionID uint64) {
 	// returns true if removed any offline peers
 	if res := filterPeers(h, sessionID); res {
 		// if any P_Excluded trace back to KE Stage
+		h.runs[sessionID].run++
 		broadcastKEResponse(h, sessionID)
 		return
 	}
@@ -93,6 +95,7 @@ func checkConfirmations(h *hub, sessionID uint64) {
 			!peer.Confirmation {
 			// Blame stage - INIT KESK
 			log.Info("BLAME - Peer ", peer.Id, " does'nt provide correct corfirmation")
+			h.runs[sessionID].run++
 			broadcastKESKRequest(h, sessionID)
 			return
 		}

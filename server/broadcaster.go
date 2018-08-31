@@ -45,6 +45,7 @@ func broadcastDCSimpleResponse(h *hub, sessionID uint64, state uint32, message s
 	if res {
 		// if any P_Excluded go back to KE Stage
 		if state == messages.S_SIMPLE_DC_VECTOR {
+			h.runs[sessionID].run++
 			broadcastKEResponse(h, sessionID)
 			return
 		}
@@ -74,6 +75,7 @@ func broadcastDCExponentialResponse(h *hub, sessionID uint64, state uint32, mess
 
 	if res {
 		if state == messages.S_EXP_DC_VECTOR {
+			h.runs[sessionID].run++
 			broadcastKEResponse(h, sessionID)
 			return
 		}
@@ -173,14 +175,14 @@ func broadcast(h *hub, sessionID uint64, message []byte, err error, statusCode u
 	log.Info("SessionId - ", sessionID, ", Expected Next State - ", h.runs[sessionID].nextState)
 
 	// registers a go-routine to handle offline peers
-	go registerWorker(h, sessionID, uint32(h.runs[sessionID].nextState))
+	go registerWorker(h, sessionID, uint32(h.runs[sessionID].nextState), h.runs[sessionID].run)
 }
 
 // registers a go-routine to handle offline peers
-func registerWorker(h *hub, sessionID uint64, statusCode uint32) {
+func registerWorker(h *hub, sessionID uint64, statusCode uint32, run int) {
 	select {
 	// wait for responseWait seconds then run registerDelayHandler()
 	case <-time.After(utils.ResponseWait * time.Second):
-		registerDelayHandler(h, sessionID, int(statusCode))
+		registerDelayHandler(h, sessionID, int(statusCode), run)
 	}
 }
