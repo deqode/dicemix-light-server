@@ -1,7 +1,7 @@
 package dc
 
 import (
-	"github.com/manjeet-thadani/dicemix-server/messages"
+	"dicemix-server/messages"
 )
 
 // DC - The main interface DC_NET.

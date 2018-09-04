@@ -1,10 +1,10 @@
 package dc
 
 import (
-	"github.com/manjeet-thadani/dicemix-server/field"
-	"github.com/manjeet-thadani/dicemix-server/messages"
-	"github.com/manjeet-thadani/dicemix-server/solver"
-	"github.com/manjeet-thadani/dicemix-server/utils"
+	"dicemix-server/field"
+	"dicemix-server/messages"
+	"dicemix-server/solver"
+	"dicemix-server/utils"
 )
 
 type dcNet struct {

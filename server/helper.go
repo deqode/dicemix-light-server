@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/manjeet-thadani/dicemix-server/ecdsa"
-	"github.com/manjeet-thadani/dicemix-server/messages"
-	"github.com/manjeet-thadani/dicemix-server/utils"
+	"dicemix-server/ecdsa"
+	"dicemix-server/messages"
+	"dicemix-server/utils"
 
 	"github.com/jinzhu/copier"
 	log "github.com/sirupsen/logrus"

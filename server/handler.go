@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/manjeet-thadani/dicemix-server/messages"
-	"github.com/manjeet-thadani/dicemix-server/utils"
+	"dicemix-server/messages"
+	"dicemix-server/utils"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"

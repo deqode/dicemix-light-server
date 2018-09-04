@@ -4,7 +4,7 @@ import (
 	"flag"
 	"net/http"
 
-	"github.com/manjeet-thadani/dicemix-server/server"
+	"dicemix-server/server"
 
 	log "github.com/sirupsen/logrus"
 )

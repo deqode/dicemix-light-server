@@ -3,8 +3,8 @@ package server
 import (
 	"sync"
 
-	"github.com/manjeet-thadani/dicemix-server/messages"
-	"github.com/manjeet-thadani/dicemix-server/utils"
+	"dicemix-server/messages"
+	"dicemix-server/utils"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"

@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/manjeet-thadani/dicemix-server/dc"
-	"github.com/manjeet-thadani/dicemix-server/utils"
+	"dicemix-server/dc"
+	"dicemix-server/utils"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
