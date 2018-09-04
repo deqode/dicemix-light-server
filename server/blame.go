@@ -110,11 +110,15 @@ func initBlame(h *hub, sessionID uint64, participants []*participant, roots []ui
 		hashes, ok := verifyMessageHashes(participant.ID, participant.Peers, messages, totalMsgsCount, peer.DCVector)
 		participant.MessagesHash = hashes
 
+		// check if user sent confirmation = false but his msg was in generated Dc-Simple vector
+		// if so then remove malicious peer
+		allMessages := h.runs[sessionID].messages
+
 		// if message and message hashes do not correspond
 		// check validity of ok sent by client in DC-SIMPLE round
 		// case: if user has sent actual dc-simple-vector and ok=false
 		// then remove client
-		if !ok || (!peer.OK && utils.IsSubset(participant.MessagesHash, roots)) {
+		if !ok || (!peer.OK && utils.IsSubset(participant.MessagesHash, roots)) || (ok && utils.ContainBytes(messages, allMessages) && !peer.Confirmation) {
 			// set peer.MessageReceived to false
 			// so it would be removed by filterPeers()
 			h.runs[sessionID].peers[i].MessageReceived = false

@@ -52,13 +52,13 @@ func broadcastDCSimpleResponse(h *hub, sessionID uint64, state uint32, message s
 	}
 
 	count := int(totalMessageCount(h.runs[sessionID].peers))
-	allMessages := iDcNet.ResolveDCNet(h.runs[sessionID].peers, count)
+	h.runs[sessionID].messages = iDcNet.ResolveDCNet(h.runs[sessionID].peers, count)
 
 	// broadcast response to all active peers
 	header := responseHeader(state, sessionID, message, errMessage)
 	peers, err := proto.Marshal(&messages.DCSimpleResponse{
 		Header:   header,
-		Messages: allMessages,
+		Messages: h.runs[sessionID].messages,
 		Peers:    h.runs[sessionID].peers,
 	})
 
@@ -110,8 +110,7 @@ func broadcastTXDone(h *hub, sessionID uint64) {
 	// broadcast response to all active peers
 	header := responseHeader(messages.S_TX_SUCCESSFUL, sessionID, "DiceMix Successful Response", "")
 	peers, err := proto.Marshal(&messages.TXDoneResponse{
-		Header:   header,
-		Messages: h.runs[sessionID].peers[0].Messages,
+		Header: header,
 	})
 
 	broadcast(h, sessionID, peers, err, messages.S_TX_SUCCESSFUL)

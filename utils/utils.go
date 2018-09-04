@@ -55,6 +55,27 @@ func EqualBytes(slice1, slice2 [][]byte) bool {
 	return true
 }
 
+// ContainBytes returns true if the first array is completely
+// contained in the second array. There must be at least
+// the same number of duplicate values in second as there
+// are in first.
+func ContainBytes(slice1, slice2 [][]byte) bool {
+	for _, s1 := range slice1 {
+		found := false
+		for _, s2 := range slice2 {
+			if !bytes.Equal(s1, s2) {
+				continue
+			}
+			found = true
+			break
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 // CheckEqualUint64 - compares two slice's of []uint64 for equality
 func CheckEqualUint64(slice1, slice2 []uint64) bool {
 	// if slice1 is nil then slice2 should also be nil

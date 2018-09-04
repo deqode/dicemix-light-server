@@ -84,15 +84,12 @@ func checkConfirmations(h *hub, sessionID uint64) {
 		return
 	}
 
-	msgs := h.runs[sessionID].peers[0].Messages
-
 	// TODO: [change] as we consider that if peer doesnt want to send his confirmation and want to go to blame stage
 	// sends |confirmation| = 0, which would be changed in future
 
 	// check if any of peers does'nt agree to continue
 	for _, peer := range h.runs[sessionID].peers {
-		if !utils.EqualBytes(peer.Messages, msgs) ||
-			!peer.Confirmation {
+		if !peer.Confirmation {
 			// Blame stage - INIT KESK
 			log.Info("BLAME - Peer ", peer.Id, " does'nt provide correct corfirmation")
 			h.runs[sessionID].run++

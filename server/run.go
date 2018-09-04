@@ -28,6 +28,7 @@ type run struct {
 	run       int
 	peers     []*messages.PeersInfo
 	nextState int
+	messages  [][]byte
 	sync.Mutex
 }
 
@@ -70,6 +71,7 @@ func newRun() *run {
 		run:       -1,
 		peers:     make([]*messages.PeersInfo, utils.MinPeers),
 		nextState: 0,
+		messages:  make([][]byte, 0),
 	}
 }
 
