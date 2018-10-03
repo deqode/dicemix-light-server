@@ -8,7 +8,7 @@
 
 <hr>
 
-### Simplified Sequence Diagram
+### Detailed Sequence Diagram
 
 <p align="center">
     <img align="center" src="docs/detailed_sequence diagram.png" width="500px" alt="detailed_sequence diagram" />
