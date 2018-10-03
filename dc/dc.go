@@ -1,7 +1,7 @@
 package dc
 
 import (
-	"dicemix-server/messages"
+	"github.com/techracers-blockchain/dicemix-light-server/messages"
 )
 
 // DC - The main interface DC_NET.

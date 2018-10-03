@@ -1,10 +1,10 @@
 package dc
 
 import (
-	"dicemix-server/field"
-	"dicemix-server/messages"
-	"dicemix-server/solver"
-	"dicemix-server/utils"
+	"github.com/techracers-blockchain/dicemix-light-server/field"
+	"github.com/techracers-blockchain/dicemix-light-server/messages"
+	"github.com/techracers-blockchain/dicemix-light-server/solver"
+	"github.com/techracers-blockchain/dicemix-light-server/utils"
 )
 
 type dcNet struct {

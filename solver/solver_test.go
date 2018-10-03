@@ -3,7 +3,7 @@ package solver
 import (
 	"testing"
 
-	"dicemix-server/utils"
+	"github.com/techracers-blockchain/dicemix-light-server/utils"
 )
 
 type testpair struct {

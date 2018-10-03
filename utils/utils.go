@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"dicemix-server/field"
+	"github.com/techracers-blockchain/dicemix-light-server/field"
 
 	base58 "github.com/jbenet/go-base58"
 	"github.com/shomali11/util/xhashes"

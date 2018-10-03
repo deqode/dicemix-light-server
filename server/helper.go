@@ -1,9 +1,9 @@
 package server
 
 import (
-	"dicemix-server/ecdsa"
-	"dicemix-server/messages"
-	"dicemix-server/utils"
+	"github.com/techracers-blockchain/dicemix-light-server/ecdsa"
+	"github.com/techracers-blockchain/dicemix-light-server/messages"
+	"github.com/techracers-blockchain/dicemix-light-server/utils"
 
 	"github.com/jinzhu/copier"
 	log "github.com/sirupsen/logrus"
